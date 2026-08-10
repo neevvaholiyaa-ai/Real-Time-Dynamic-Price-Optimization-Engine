@@ -1,8 +1,5 @@
 {
   "model_type": "LightGBM Regressor",
-  "training_date": "2026-08-10",
-  "training_observations": 90258,
-  "test_observations": 55640,
   "features_count": 57,
   "hyperparameters": {
     "n_estimators": 400,
