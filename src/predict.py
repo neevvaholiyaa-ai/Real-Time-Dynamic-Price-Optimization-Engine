@@ -346,10 +346,16 @@ def predict_optimal_price(input_data: Dict[str, Any]) -> Dict[str, Any]:
     # 6. Insights
     insights = generate_business_insights(validated, recommended_price, curr_price, guardrails)
 
+    product_id = str(validated.get("product_id", "P001"))
+    city = str(validated.get("city", "Ahmedabad"))
+
     return {
+        "product_id": product_id,
+        "city": city,
         "current_price": curr_price,
         "recommended_price": recommended_price,
         "price_change": price_change,
+        "price_change_percent": price_change_pct,
         "price_change_percentage": price_change_pct,
         "recommendation": recommendation,
         "guardrail_applied": guardrails["clipped"],

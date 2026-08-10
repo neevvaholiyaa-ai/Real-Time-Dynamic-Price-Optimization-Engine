@@ -35,10 +35,13 @@ document.addEventListener("DOMContentLoaded", () => {
         }).format(val);
     };
 
+    // Resolve backend API URL (supports local integrated serving, standalone Vercel frontend, and Render backend)
+    const API_BASE_URL = window.API_BASE_URL || "";
+
     // 1. Fetch Demo Scenarios from Backend
     async function loadPresets() {
         try {
-            const resp = await fetch("/api/catalog-samples");
+            const resp = await fetch(`${API_BASE_URL}/api/catalog-samples`);
             if (resp.ok) {
                 sampleScenarios = await resp.json();
                 sampleScenarios.forEach((item, idx) => {
@@ -105,7 +108,7 @@ document.addEventListener("DOMContentLoaded", () => {
         btnLoader.style.display = "flex";
 
         try {
-            const resp = await fetch("/predict", {
+            const resp = await fetch(`${API_BASE_URL}/predict`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload)
