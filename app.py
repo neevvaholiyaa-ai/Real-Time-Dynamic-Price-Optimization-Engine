@@ -6,6 +6,7 @@ import os
 import sys
 from pathlib import Path
 from typing import List, Optional, Dict, Any
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -20,11 +21,22 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from src.predict import predict_optimal_price, get_model_bundle
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Pre-load model bundle into memory at server startup."""
+    try:
+        bundle = get_model_bundle()
+        print(f"[FastAPI Startup] Model loaded successfully ({len(bundle['feature_columns'])} features).")
+    except Exception as e:
+        print(f"[FastAPI Startup Error] Could not load model: {e}")
+    yield
+
 # Initialize FastAPI App
 app = FastAPI(
     title="Real-Time Dynamic Price Optimization Engine",
     description="Dynamic pricing intelligence and profit maximization microservice for e-commerce.",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan
 )
 
 # Enable CORS
@@ -89,15 +101,6 @@ class PricePredictionResponse(BaseModel):
 # =============================================================================
 # API Endpoints
 # =============================================================================
-
-@app.on_event("startup")
-def startup_event():
-    """Pre-load model bundle into memory at server startup."""
-    try:
-        bundle = get_model_bundle()
-        print(f"[FastAPI Startup] Model loaded successfully ({len(bundle['feature_columns'])} features).")
-    except Exception as e:
-        print(f"[FastAPI Startup Error] Could not load model: {e}")
 
 @app.get("/health", tags=["System"])
 def health_check():
