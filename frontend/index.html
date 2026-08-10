@@ -1,247 +1,397 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dynamic Pricing | Intelligent Price Optimization Dashboard</title>
-    <meta name="description" content="Optimize product pricing in real time based on demand velocity, inventory health, market competition, and seasonal surges.">
+    <title>Dynamic Pricing | Retail Revenue & Margin Optimizer</title>
+    <meta name="description" content="Make smarter product pricing decisions in real time based on competitor pricing, demand signals, inventory runway, and market conditions.">
+    
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600;700;800&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
+    
+    <!-- Stylesheet -->
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-    <div class="app-wrapper">
+    <!-- Live Ambient Market Wave Canvas -->
+    <canvas id="marketWaveCanvas" class="ambient-canvas" aria-hidden="true"></canvas>
+
+    <div class="app-layout">
         <!-- Top Navigation -->
-        <header class="top-nav">
-            <div class="nav-brand">
-                <div class="brand-icon">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M13 2L3 14H12L11 22L21 10H12L13 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
+        <header class="app-header">
+            <div class="nav-container">
+                <div class="brand-group">
+                    <div class="brand-badge">
+                        <span class="material-symbols-outlined brand-icon" style="font-variation-settings: 'FILL' 1;">bolt</span>
+                    </div>
+                    <div class="brand-details">
+                        <h1 class="brand-title">Dynamic Pricing</h1>
+                        <p class="brand-subtitle">Retail Revenue &amp; Margin Optimizer</p>
+                    </div>
                 </div>
-                <div class="brand-text">
-                    <h1>Dynamic Pricing</h1>
-                    <span class="brand-subtitle">Revenue & Margin Optimization Engine</span>
+
+                <div class="header-status">
+                    <div class="status-pill">
+                        <span class="status-dot"></span>
+                        <span class="status-label">System Active</span>
+                    </div>
+                    <div class="hub-pill">
+                        <span class="material-symbols-outlined hub-icon">location_on</span>
+                        <span class="hub-label">Gujarat Hub</span>
+                    </div>
                 </div>
-            </div>
-            <div class="nav-status">
-                <span class="status-indicator"></span>
-                <span class="status-text">System Active</span>
-                <span class="market-badge">Gujarat Hub</span>
             </div>
         </header>
 
-        <!-- Main Dashboard -->
-        <main class="dashboard-container">
+        <!-- Main Content Area -->
+        <main class="main-container">
             <!-- Hero Header -->
-            <section class="dashboard-hero">
-                <h2>Real-Time Dynamic Pricing Recommendation</h2>
-                <p>Maximize gross margin and sales velocity by evaluating inventory runway, competitor pricing corridors, and regional demand signals.</p>
-                
-                <!-- Quick Preset Selector -->
-                <div class="preset-bar">
-                    <label for="presetSelect">Quick Load Product Scenario:</label>
-                    <select id="presetSelect" class="preset-dropdown">
-                        <option value="">-- Choose a Demo Scenario --</option>
-                    </select>
+            <section class="hero-section">
+                <div class="hero-badge">
+                    <span class="material-symbols-outlined hero-badge-icon">timeline</span>
+                    <span>Real-Time Pricing Intelligence</span>
+                </div>
+                <h2 class="hero-headline">Real-Time Dynamic Pricing Recommendation</h2>
+                <p class="hero-subtext">Make smarter pricing decisions using competitor pricing, demand signals, inventory health, and market conditions.</p>
+
+                <!-- Quick Scenario Selector -->
+                <div class="preset-selector-container">
+                    <div class="preset-label-wrap">
+                        <span class="material-symbols-outlined preset-icon">auto_fix_high</span>
+                        <label for="presetSelect" class="preset-label">Try a scenario:</label>
+                    </div>
+                    <div class="select-wrapper">
+                        <select id="presetSelect" class="preset-select" aria-label="Select demo scenario">
+                            <option value="">Choose a demo scenario...</option>
+                        </select>
+                        <span class="material-symbols-outlined select-arrow">expand_more</span>
+                    </div>
                 </div>
             </section>
 
-            <!-- Grid Layout -->
-            <div class="dashboard-grid">
+            <!-- Global Error Banner (Hidden by default) -->
+            <div id="errorBanner" class="alert-banner error-banner" style="display: none;" role="alert">
+                <div class="alert-content">
+                    <span class="material-symbols-outlined alert-icon">error</span>
+                    <div class="alert-text">
+                        <strong id="errorTitle">Notice:</strong>
+                        <span id="errorMessage">We couldn't generate a recommendation right now. Please check the information and try again.</span>
+                    </div>
+                </div>
+                <button type="button" id="dismissErrorBtn" class="alert-close" aria-label="Dismiss alert">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+
+            <!-- Workspace Grid (2 Columns on Desktop) -->
+            <div class="workspace-grid">
                 <!-- Left Column: Input Form -->
                 <section class="card input-card">
-                    <div class="card-header">
-                        <div class="header-icon">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                    <div class="card-title-bar">
+                        <div class="title-with-icon">
+                            <span class="material-symbols-outlined section-icon">tune</span>
+                            <h3 class="card-heading">Product &amp; Market Conditions</h3>
                         </div>
-                        <h3>Market & Product Parameters</h3>
+                        <span class="subtle-badge">All values in INR (₹)</span>
                     </div>
 
-                    <form id="pricingForm" class="pricing-form">
-                        <!-- Product Identifiers -->
-                        <div class="form-section">
-                            <h4 class="section-title">1. Catalog & Location</h4>
-                            <div class="form-row">
-                                <div class="form-group flex-2">
-                                    <label for="productName">Product Title</label>
-                                    <input type="text" id="productName" value="Wireless Noise Cancelling Headphones Pro" required>
+                    <form id="pricingForm" class="pricing-form" novalidate>
+                        <!-- Group 1: Product & Location -->
+                        <div class="form-group-section">
+                            <div class="section-tag">
+                                <span class="tag-num">1</span>
+                                <span class="tag-label">Product &amp; Location</span>
+                            </div>
+
+                            <div class="form-field">
+                                <label for="productName" class="field-label">Product Title</label>
+                                <div class="input-with-icon">
+                                    <span class="material-symbols-outlined input-icon">shopping_bag</span>
+                                    <input type="text" id="productName" class="text-input" placeholder="e.g. Wireless Noise Cancelling Headphones Pro" value="Wireless Noise Cancelling Headphones Pro" required>
                                 </div>
-                                <div class="form-group flex-1">
-                                    <label for="categorySelect">Category</label>
-                                    <select id="categorySelect" required>
-                                        <option value="Electronics" selected>Electronics</option>
-                                        <option value="Fashion">Fashion</option>
-                                        <option value="Footwear">Footwear</option>
-                                        <option value="Grocery">Grocery</option>
-                                        <option value="Home & Kitchen">Home & Kitchen</option>
-                                        <option value="Mobile Accessories">Mobile Accessories</option>
-                                        <option value="Personal Care">Personal Care</option>
-                                        <option value="Sports & Fitness">Sports & Fitness</option>
-                                    </select>
+                            </div>
+
+                            <div class="field-row-2">
+                                <div class="form-field">
+                                    <label for="categorySelect" class="field-label">Category</label>
+                                    <div class="select-wrapper">
+                                        <select id="categorySelect" class="text-input select-input" required>
+                                            <option value="Electronics" selected>Electronics</option>
+                                            <option value="Fashion">Fashion</option>
+                                            <option value="Footwear">Footwear</option>
+                                            <option value="Grocery">Grocery</option>
+                                            <option value="Home & Kitchen">Home &amp; Kitchen</option>
+                                            <option value="Mobile Accessories">Mobile Accessories</option>
+                                            <option value="Personal Care">Personal Care</option>
+                                            <option value="Sports & Fitness">Sports &amp; Fitness</option>
+                                        </select>
+                                        <span class="material-symbols-outlined select-arrow">expand_more</span>
+                                    </div>
                                 </div>
-                                <div class="form-group flex-1">
-                                    <label for="citySelect">Fulfillment Hub</label>
-                                    <select id="citySelect" required>
-                                        <option value="Ahmedabad" selected>Ahmedabad</option>
-                                        <option value="Surat">Surat</option>
-                                    </select>
+
+                                <div class="form-field">
+                                    <label for="citySelect" class="field-label">Fulfillment Hub</label>
+                                    <div class="select-wrapper">
+                                        <select id="citySelect" class="text-input select-input" required>
+                                            <option value="Ahmedabad" selected>Ahmedabad</option>
+                                            <option value="Surat">Surat</option>
+                                        </select>
+                                        <span class="material-symbols-outlined select-arrow">expand_more</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Pricing Structure -->
-                        <div class="form-section">
-                            <h4 class="section-title">2. Pricing Structure & Cost</h4>
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label for="costPrice">Cost Price (₹)</label>
-                                    <input type="number" id="costPrice" value="2500" min="1" step="0.01" required>
-                                    <span class="field-hint">Unit acquisition cost</span>
+                        <!-- Group 2: Pricing & Cost Structure -->
+                        <div class="form-group-section">
+                            <div class="section-tag">
+                                <span class="tag-num">2</span>
+                                <span class="tag-label">Pricing &amp; Cost Structure</span>
+                            </div>
+
+                            <div class="field-row-2">
+                                <div class="form-field">
+                                    <label for="costPrice" class="field-label">Cost Price (₹)</label>
+                                    <div class="input-with-icon">
+                                        <span class="input-prefix">₹</span>
+                                        <input type="number" id="costPrice" class="text-input num-input" placeholder="2500" value="2500" min="1" step="0.01" required>
+                                    </div>
+                                    <span class="field-hint">Unit acquisition / manufacturing cost</span>
                                 </div>
-                                <div class="form-group">
-                                    <label for="currentPrice">Current Selling Price (₹)</label>
-                                    <input type="number" id="currentPrice" value="4200" min="1" step="0.01" required>
-                                    <span class="field-hint">Active marketplace price</span>
+
+                                <div class="form-field">
+                                    <label for="currentPrice" class="field-label">Current Selling Price (₹)</label>
+                                    <div class="input-with-icon">
+                                        <span class="input-prefix">₹</span>
+                                        <input type="number" id="currentPrice" class="text-input num-input" placeholder="4200" value="4200" min="1" step="0.01" required>
+                                    </div>
+                                    <span class="field-hint">Active catalog retail price</span>
                                 </div>
-                                <div class="form-group">
-                                    <label for="mrp">Maximum Retail Price (₹)</label>
-                                    <input type="number" id="mrp" value="4999" min="1" step="0.01" required>
-                                    <span class="field-hint">Catalog price ceiling</span>
+                            </div>
+
+                            <div class="field-row-2">
+                                <div class="form-field">
+                                    <label for="mrp" class="field-label">Maximum Retail Price - MRP (₹)</label>
+                                    <div class="input-with-icon">
+                                        <span class="input-prefix">₹</span>
+                                        <input type="number" id="mrp" class="text-input num-input" placeholder="4999" value="4999" min="1" step="0.01" required>
+                                    </div>
+                                    <span class="field-hint">Packaging price ceiling</span>
                                 </div>
-                                <div class="form-group">
-                                    <label for="competitorPrice">Competitor Price (₹)</label>
-                                    <input type="number" id="competitorPrice" value="4150" min="1" step="0.01" required>
+
+                                <div class="form-field">
+                                    <label for="competitorPrice" class="field-label">Competitor Avg Price (₹)</label>
+                                    <div class="input-with-icon">
+                                        <span class="input-prefix">₹</span>
+                                        <input type="number" id="competitorPrice" class="text-input num-input" placeholder="4150" value="4150" min="1" step="0.01" required>
+                                    </div>
                                     <span class="field-hint">Market consensus average</span>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Demand & Inventory Context -->
-                        <div class="form-section">
-                            <h4 class="section-title">3. Demand, Inventory & Context</h4>
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label for="stockLevel">Warehouse Stock (Units)</label>
-                                    <input type="number" id="stockLevel" value="25" min="0" required>
-                                    <span class="field-hint">Available on-hand units</span>
+                        <!-- Group 3: Inventory & Demand Context -->
+                        <div class="form-group-section">
+                            <div class="section-tag">
+                                <span class="tag-num">3</span>
+                                <span class="tag-label">Inventory &amp; Demand Context</span>
+                            </div>
+
+                            <div class="field-row-2">
+                                <div class="form-field">
+                                    <label for="stockLevel" class="field-label">Warehouse Stock (Units)</label>
+                                    <div class="input-with-icon">
+                                        <span class="material-symbols-outlined input-icon">inventory_2</span>
+                                        <input type="number" id="stockLevel" class="text-input num-input" placeholder="25" value="25" min="0" required>
+                                    </div>
+                                    <span class="field-hint">Units available on-hand</span>
                                 </div>
-                                <div class="form-group">
-                                    <label for="dailyOrders">Daily Orders (Units/Day)</label>
-                                    <input type="number" id="dailyOrders" value="65" min="0" required>
-                                    <span class="field-hint">Recent sales velocity</span>
+
+                                <div class="form-field">
+                                    <label for="dailyOrders" class="field-label">Daily Sales Velocity (Orders/Day)</label>
+                                    <div class="input-with-icon">
+                                        <span class="material-symbols-outlined input-icon">speed</span>
+                                        <input type="number" id="dailyOrders" class="text-input num-input" placeholder="65" value="65" min="0" required>
+                                    </div>
+                                    <span class="field-hint">Recent average daily demand</span>
                                 </div>
-                                <div class="form-group">
-                                    <label for="daysToFestival">Days Until Next Festival</label>
-                                    <input type="number" id="daysToFestival" value="3" min="0" max="365" required>
+                            </div>
+
+                            <div class="field-row-2">
+                                <div class="form-field">
+                                    <label for="daysToFestival" class="field-label">Days Until Next Festival</label>
+                                    <div class="input-with-icon">
+                                        <span class="material-symbols-outlined input-icon">celebration</span>
+                                        <input type="number" id="daysToFestival" class="text-input num-input" placeholder="3" value="3" min="0" max="365" required>
+                                    </div>
                                     <span class="field-hint">Navratri / Diwali proximity</span>
                                 </div>
-                                <div class="form-group">
-                                    <label for="weatherType">Weather Condition</label>
-                                    <select id="weatherType">
-                                        <option value="Clear" selected>Clear / Fair</option>
-                                        <option value="Rainy">Monsoon / Heavy Rain</option>
-                                        <option value="Overcast">Overcast</option>
-                                        <option value="Partly Cloudy">Partly Cloudy</option>
-                                    </select>
-                                    <span class="field-hint">Current local weather</span>
+
+                                <div class="form-field">
+                                    <label for="weatherType" class="field-label">Weather Condition</label>
+                                    <div class="select-wrapper">
+                                        <select id="weatherType" class="text-input select-input" required>
+                                            <option value="Clear" selected>Clear / Fair</option>
+                                            <option value="Rainy">Monsoon / Heavy Rain</option>
+                                            <option value="Overcast">Overcast</option>
+                                            <option value="Partly Cloudy">Partly Cloudy</option>
+                                        </select>
+                                        <span class="material-symbols-outlined select-arrow">expand_more</span>
+                                    </div>
+                                    <span class="field-hint">Local weather pattern</span>
                                 </div>
                             </div>
                         </div>
 
-                        <button type="submit" id="submitBtn" class="primary-btn">
-                            <span class="btn-text">Get Price Recommendation</span>
-                            <span class="btn-loader" style="display: none;">
-                                <svg class="spinner" viewBox="0 0 50 50">
-                                    <circle class="path" cx="25" cy="25" r="20" fill="none" stroke-width="5"></circle>
-                                </svg>
-                                Optimizing...
-                            </span>
-                        </button>
+                        <!-- Primary Submit Button -->
+                        <div class="form-actions">
+                            <button type="submit" id="submitBtn" class="btn-primary">
+                                <span class="btn-text">
+                                    <span class="material-symbols-outlined btn-icon" style="font-variation-settings: 'FILL' 1;">bolt</span>
+                                    <span>Get Price Recommendation</span>
+                                </span>
+                                <span class="btn-loader" style="display: none;">
+                                    <svg class="spinner-icon" viewBox="0 0 50 50">
+                                        <circle class="spinner-path" cx="25" cy="25" r="20" fill="none" stroke-width="4"></circle>
+                                    </svg>
+                                    <span>Optimizing Price...</span>
+                                </span>
+                            </button>
+                        </div>
                     </form>
                 </section>
 
-                <!-- Right Column: Recommendation Results -->
+                <!-- Right Column: Recommendation Experience -->
                 <section class="card result-card" id="resultContainer">
-                    <div class="card-header">
-                        <div class="header-icon success">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                    <!-- State 1: Empty Initial Placeholder -->
+                    <div id="resultPlaceholder" class="state-placeholder">
+                        <div class="empty-illustration">
+                            <div class="pulse-ring"></div>
+                            <span class="material-symbols-outlined empty-icon" style="font-variation-settings: 'FILL' 1;">price_check</span>
                         </div>
-                        <h3>Pricing Recommendation</h3>
+                        <h3 class="placeholder-title">Your pricing recommendation will appear here</h3>
+                        <p class="placeholder-desc">Fill in the product details on the left or select a demo scenario from the top to calculate the optimal market price.</p>
+                        <div class="placeholder-action-hint">
+                            <span class="material-symbols-outlined hint-icon">lightbulb</span>
+                            <span>Tip: Scenarios simulate low-stock surges, monsoon impacts, and overstock clearances.</span>
+                        </div>
                     </div>
 
-                    <!-- Placeholder before submission -->
-                    <div id="resultPlaceholder" class="result-placeholder">
-                        <div class="empty-graphic">
-                            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                                <circle cx="12" cy="12" r="10"></circle>
-                                <line x1="12" y1="8" x2="12" y2="12"></line>
-                                <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                            </svg>
-                        </div>
-                        <h4>Awaiting Input Parameters</h4>
-                        <p>Fill out the product and market parameters on the left or select a demo scenario to view instant dynamic price optimization.</p>
-                    </div>
-
-                    <!-- Active Result View -->
-                    <div id="resultContent" class="result-content" style="display: none;">
-                        <!-- Primary Price Comparison Card -->
-                        <div class="price-hero-box">
-                            <div class="price-side current">
-                                <span class="price-label">Current Selling Price</span>
-                                <span class="price-value" id="resCurrentPrice">₹4,200.00</span>
+                    <!-- State 2: Active Recommendation Result View (Revealed when ready) -->
+                    <div id="resultContent" class="recommendation-content" style="display: none;">
+                        <!-- Recommendation Header & Action Badge -->
+                        <div class="rec-header">
+                            <div class="rec-meta">
+                                <span class="meta-label">Optimal Daily Price</span>
+                                <span class="meta-sub" id="resProductSubtitle">Wireless Noise Cancelling Headphones Pro</span>
                             </div>
-                            <div class="price-divider">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-                            </div>
-                            <div class="price-side recommended">
-                                <span class="price-label">Recommended Optimal Price</span>
-                                <span class="price-value highlight" id="resRecommendedPrice">₹4,834.00</span>
+                            <div class="action-badge-container">
+                                <span id="resActionBadge" class="action-badge badge-increase">
+                                    <span id="badgeIcon" class="material-symbols-outlined badge-icon">arrow_upward</span>
+                                    <span id="badgeText">Increase Price</span>
+                                </span>
                             </div>
                         </div>
 
-                        <!-- Metric Badges Row -->
-                        <div class="metrics-row">
-                            <div class="metric-card">
-                                <span class="metric-title">Price Change</span>
-                                <span class="metric-number" id="resPriceDiff">+₹634.00</span>
+                        <!-- Hero Price Display Card -->
+                        <div class="price-hero-card">
+                            <div class="price-side current-side">
+                                <span class="price-sub-label">Current Selling Price</span>
+                                <span class="price-amount" id="resCurrentPrice">₹4,200</span>
+                                <span class="price-caption">Active in Store</span>
                             </div>
-                            <div class="metric-card">
-                                <span class="metric-title">Adjustment %</span>
-                                <span class="metric-number" id="resPriceDiffPct">+15.1%</span>
-                            </div>
-                            <div class="metric-card">
-                                <span class="metric-title">Recommended Action</span>
-                                <span class="badge" id="resActionBadge">Increase Price</span>
-                            </div>
-                        </div>
 
-                        <!-- Guardrail Corridor Visualizer -->
-                        <div class="guardrail-box">
-                            <div class="guardrail-header">
-                                <span class="guardrail-title">Approved Market Guardrail Range</span>
-                                <span class="guardrail-badge" id="guardrailStatus">Guarded Floor Active</span>
+                            <div class="price-flow-indicator">
+                                <span class="material-symbols-outlined flow-arrow">arrow_forward</span>
                             </div>
-                            <div class="range-bar-container">
-                                <div class="range-limits">
-                                    <span id="resMinPrice">Min: ₹3,112.50</span>
-                                    <span id="resMaxPrice">Max: ₹5,187.50</span>
+
+                            <div class="price-side recommended-side">
+                                <span class="price-sub-label highlight-label">Recommended Optimal Price</span>
+                                <div class="recommended-value-wrap">
+                                    <span class="price-amount-large text-gradient" id="resRecommendedPrice">₹4,834</span>
                                 </div>
-                                <div class="range-track">
-                                    <div class="range-fill" style="left: 20%; width: 65%;"></div>
-                                    <div class="range-pin" id="rangePin" style="left: 70%;"></div>
+                                <span class="price-caption highlight-caption">Profit-Maximizing Target</span>
+                            </div>
+                        </div>
+
+                        <!-- 3 Summary Metrics -->
+                        <div class="metrics-grid">
+                            <div class="metric-card">
+                                <span class="metric-label">Price Change</span>
+                                <span class="metric-val mono-font" id="resPriceDiff">+₹634.00</span>
+                            </div>
+                            <div class="metric-card">
+                                <span class="metric-label">Adjustment</span>
+                                <span class="metric-val mono-font" id="resPriceDiffPct">+15.1%</span>
+                            </div>
+                            <div class="metric-card">
+                                <span class="metric-label">Action Target</span>
+                                <span class="metric-val" id="resActionSummary">Margin Expansion</span>
+                            </div>
+                        </div>
+
+                        <!-- Guardrail Visualizer Bar -->
+                        <div class="guardrail-panel">
+                            <div class="guardrail-title-row">
+                                <div class="guardrail-name">
+                                    <span class="material-symbols-outlined guardrail-icon">verified_user</span>
+                                    <span>Approved Market Guardrails</span>
+                                </div>
+                                <span class="guardrail-status" id="guardrailStatusTag">Protected Profit Floor Active</span>
+                            </div>
+
+                            <div class="guardrail-bar-wrapper">
+                                <div class="guardrail-limits-text">
+                                    <span id="resMinPrice" class="limit-item mono-font">Floor: ₹3,112.50</span>
+                                    <span id="resCompPrice" class="limit-item mono-font">Market: ₹4,150.00</span>
+                                    <span id="resMaxPrice" class="limit-item mono-font">Ceiling: ₹5,187.50</span>
+                                </div>
+                                <div class="guardrail-track">
+                                    <div class="guardrail-safe-range" id="guardrailRangeBar"></div>
+                                    <div class="guardrail-pin" id="guardrailPin" style="left: 65%;">
+                                        <div class="pin-tooltip mono-font" id="pinTooltip">₹4,834</div>
+                                        <div class="pin-marker"></div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Merchandising Insights -->
-                        <div class="insights-box">
-                            <h4 class="insights-title">Merchandising & Inventory Insights</h4>
-                            <ul class="insights-list" id="resInsightsList">
-                                <li>Recommended price captures higher festival margin while respecting competitor pricing corridor.</li>
-                            </ul>
+                        <!-- Inventory Runway & Market Context Split -->
+                        <div class="context-split-grid">
+                            <!-- Left: Why This Price? Insights -->
+                            <div class="context-card insights-card">
+                                <h4 class="context-heading">
+                                    <span class="material-symbols-outlined card-icon">psychology</span>
+                                    <span>Why this price?</span>
+                                </h4>
+                                <ul class="insights-list" id="resInsightsList">
+                                    <li>Recommended price captures higher festival demand margin in Gujarat.</li>
+                                    <li>Inventory runway is low (0.4 days remaining); pricing includes scarcity premium.</li>
+                                    <li>Protects the required profit floor of 5%+ above unit cost.</li>
+                                </ul>
+                            </div>
+
+                            <!-- Right: Inventory Runway & Market Health -->
+                            <div class="context-card inventory-card">
+                                <h4 class="context-heading">
+                                    <span class="material-symbols-outlined card-icon">inventory</span>
+                                    <span>Inventory Health</span>
+                                </h4>
+                                <div class="inventory-widget">
+                                    <div class="inventory-meter">
+                                        <span class="runway-number mono-font" id="resInventoryRunway">0.4</span>
+                                        <span class="runway-unit">Days Runway</span>
+                                    </div>
+                                    <div class="inventory-badge-wrap">
+                                        <span id="resInventoryStatusBadge" class="stock-badge stock-low">
+                                            <span class="material-symbols-outlined stock-icon">warning</span>
+                                            <span id="resInventoryStatusText">Low Stock</span>
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </section>
@@ -250,10 +400,11 @@
 
         <!-- Footer -->
         <footer class="app-footer">
-            <p>Real-Time Dynamic Price Optimization Engine &copy; 2026. Commercial Dynamic Pricing & Revenue Management.</p>
+            <p class="footer-text">Dynamic Pricing &copy; 2026. Commercial Dynamic Pricing &amp; Revenue Management Engine.</p>
         </footer>
     </div>
 
+    <!-- Application Script -->
     <script src="/static/script.js"></script>
 </body>
 </html>

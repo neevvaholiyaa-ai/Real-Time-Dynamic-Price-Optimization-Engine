@@ -1,44 +1,142 @@
 /**
- * Real-Time Dynamic Pricing Dashboard — Client Script
- * Handles asynchronous communication with backend pricing microservice,
- * scenario presets loading, and interactive recommendation rendering.
+ * Dynamic Pricing — Retail Revenue & Margin Optimizer
+ * Client Application Script
+ * Manages state transitions, ambient canvas animation, presets loading,
+ * input validation, live API communication, and interactive results rendering.
  */
 
 document.addEventListener("DOMContentLoaded", () => {
+    // -------------------------------------------------------------------------
+    // 1. DOM Elements
+    // -------------------------------------------------------------------------
     const form = document.getElementById("pricingForm");
     const submitBtn = document.getElementById("submitBtn");
     const btnText = submitBtn.querySelector(".btn-text");
     const btnLoader = submitBtn.querySelector(".btn-loader");
     const presetSelect = document.getElementById("presetSelect");
 
+    const errorBanner = document.getElementById("errorBanner");
+    const errorMessage = document.getElementById("errorMessage");
+    const dismissErrorBtn = document.getElementById("dismissErrorBtn");
+
     const resultPlaceholder = document.getElementById("resultPlaceholder");
     const resultContent = document.getElementById("resultContent");
+
+    const resProductSubtitle = document.getElementById("resProductSubtitle");
+    const resActionBadge = document.getElementById("resActionBadge");
+    const badgeIcon = document.getElementById("badgeIcon");
+    const badgeText = document.getElementById("badgeText");
 
     const resCurrentPrice = document.getElementById("resCurrentPrice");
     const resRecommendedPrice = document.getElementById("resRecommendedPrice");
     const resPriceDiff = document.getElementById("resPriceDiff");
     const resPriceDiffPct = document.getElementById("resPriceDiffPct");
-    const resActionBadge = document.getElementById("resActionBadge");
-    const resMinPrice = document.getElementById("resMinPrice");
-    const resMaxPrice = document.getElementById("resMaxPrice");
-    const rangePin = document.getElementById("rangePin");
-    const resInsightsList = document.getElementById("resInsightsList");
+    const resActionSummary = document.getElementById("resActionSummary");
 
+    const resMinPrice = document.getElementById("resMinPrice");
+    const resCompPrice = document.getElementById("resCompPrice");
+    const resMaxPrice = document.getElementById("resMaxPrice");
+    const guardrailPin = document.getElementById("guardrailPin");
+    const pinTooltip = document.getElementById("pinTooltip");
+
+    const resInsightsList = document.getElementById("resInsightsList");
+    const resInventoryRunway = document.getElementById("resInventoryRunway");
+    const resInventoryStatusBadge = document.getElementById("resInventoryStatusBadge");
+    const resInventoryStatusText = document.getElementById("resInventoryStatusText");
+
+    // Dynamic API Base URL resolution (Configurable for Vercel/Render)
+    const API_BASE_URL = window.API_BASE_URL || "";
     let sampleScenarios = [];
 
-    // Helper: Currency Formatter
-    const formatINR = (val) => {
-        return new Intl.NumberFormat('en-IN', {
-            style: 'currency',
-            currency: 'INR',
-            maximumFractionDigits: 2
-        }).format(val);
+    // -------------------------------------------------------------------------
+    // 2. Ambient Market Wave Canvas Animation (Signature Visual Element)
+    // -------------------------------------------------------------------------
+    const canvas = document.getElementById("marketWaveCanvas");
+    if (canvas) {
+        const ctx = canvas.getContext("2d");
+        let width = (canvas.width = window.innerWidth);
+        let height = (canvas.height = window.innerHeight);
+
+        window.addEventListener("resize", () => {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        });
+
+        const particles = Array.from({ length: 28 }, () => ({
+            x: Math.random() * width,
+            y: Math.random() * height,
+            radius: Math.random() * 2 + 1,
+            vx: (Math.random() - 0.5) * 0.4,
+            vy: (Math.random() - 0.5) * 0.4,
+            alpha: Math.random() * 0.4 + 0.1
+        }));
+
+        let step = 0;
+        function animateCanvas() {
+            ctx.clearRect(0, 0, width, height);
+            step += 0.008;
+
+            // Draw subtle flowing market curve
+            ctx.beginPath();
+            ctx.strokeStyle = "rgba(99, 102, 241, 0.08)";
+            ctx.lineWidth = 1.5;
+            for (let x = 0; x < width; x += 10) {
+                const y = Math.sin(x * 0.003 + step) * 45 + Math.cos(x * 0.002 + step * 0.5) * 35 + height * 0.35;
+                if (x === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+
+            // Draw ambient particles
+            particles.forEach(p => {
+                p.x += p.vx;
+                p.y += p.vy;
+                if (p.x < 0) p.x = width;
+                if (p.x > width) p.x = 0;
+                if (p.y < 0) p.y = height;
+                if (p.y > height) p.y = 0;
+
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(129, 140, 248, ${p.alpha})`;
+                ctx.fill();
+            });
+
+            requestAnimationFrame(animateCanvas);
+        }
+        animateCanvas();
+    }
+
+    // -------------------------------------------------------------------------
+    // 3. Currency & Utility Helpers
+    // -------------------------------------------------------------------------
+    const formatINR = (num, includeDecimals = true) => {
+        if (isNaN(num)) return "₹0";
+        return new Intl.NumberFormat("en-IN", {
+            style: "currency",
+            currency: "INR",
+            minimumFractionDigits: includeDecimals ? 2 : 0,
+            maximumFractionDigits: includeDecimals ? 2 : 0
+        }).format(num);
     };
 
-    // Resolve backend API URL (supports local integrated serving, standalone Vercel frontend, and Render backend)
-    const API_BASE_URL = window.API_BASE_URL || "";
+    function showError(msg) {
+        errorMessage.textContent = msg;
+        errorBanner.style.display = "flex";
+        errorBanner.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
 
-    // 1. Fetch Demo Scenarios from Backend
+    function hideError() {
+        errorBanner.style.display = "none";
+    }
+
+    if (dismissErrorBtn) {
+        dismissErrorBtn.addEventListener("click", hideError);
+    }
+
+    // -------------------------------------------------------------------------
+    // 4. Load Scenarios from Backend
+    // -------------------------------------------------------------------------
     async function loadPresets() {
         try {
             const resp = await fetch(`${API_BASE_URL}/api/catalog-samples`);
@@ -47,16 +145,16 @@ document.addEventListener("DOMContentLoaded", () => {
                 sampleScenarios.forEach((item, idx) => {
                     const opt = document.createElement("option");
                     opt.value = idx;
-                    opt.textContent = item.label;
+                    opt.textContent = item.label || item.product_name;
                     presetSelect.appendChild(opt);
                 });
             }
         } catch (err) {
-            console.warn("Could not load presets:", err);
+            console.warn("Could not load scenarios from server:", err);
         }
     }
 
-    // 2. Populate Form when Preset Chosen
+    // Auto-fill form when preset is chosen
     presetSelect.addEventListener("change", (e) => {
         const idx = e.target.value;
         if (idx === "" || !sampleScenarios[idx]) return;
@@ -74,35 +172,59 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById("daysToFestival").value = s.days_until_next_festival;
         document.getElementById("weatherType").value = s.weather_type;
 
-        // Auto trigger recommendation calculation
+        hideError();
         submitForm();
     });
 
-    // 3. Handle Form Submission
+    // -------------------------------------------------------------------------
+    // 5. Form Submission & State Controller
+    // -------------------------------------------------------------------------
     async function submitForm() {
-        // Collect form data
+        hideError();
+
+        const costPrice = parseFloat(document.getElementById("costPrice").value);
+        const currentPrice = parseFloat(document.getElementById("currentPrice").value);
+        const mrp = parseFloat(document.getElementById("mrp").value);
+        const compPrice = parseFloat(document.getElementById("competitorPrice").value);
+        const stockLevel = parseInt(document.getElementById("stockLevel").value);
+        const dailyOrders = parseInt(document.getElementById("dailyOrders").value);
+        const daysToFestival = parseInt(document.getElementById("daysToFestival").value);
+
+        // Validation Checks
+        if (isNaN(costPrice) || costPrice <= 0) {
+            showError("Please provide a valid positive Cost Price.");
+            return;
+        }
+        if (isNaN(currentPrice) || currentPrice <= 0) {
+            showError("Please provide a valid positive Current Selling Price.");
+            return;
+        }
+        if (isNaN(mrp) || mrp <= 0) {
+            showError("Please provide a valid Maximum Retail Price (MRP).");
+            return;
+        }
+        if (costPrice > mrp) {
+            showError(`Cost Price (${formatINR(costPrice)}) cannot exceed Maximum Retail Price MRP (${formatINR(mrp)}).`);
+            return;
+        }
+
         const payload = {
-            product_name: document.getElementById("productName").value,
+            product_id: "P001",
+            product_name: document.getElementById("productName").value.trim() || "Product SKU",
             category: document.getElementById("categorySelect").value,
             city: document.getElementById("citySelect").value,
-            cost_price: parseFloat(document.getElementById("costPrice").value),
-            current_price: parseFloat(document.getElementById("currentPrice").value),
-            mrp: parseFloat(document.getElementById("mrp").value),
-            competitor_avg_price: parseFloat(document.getElementById("competitorPrice").value),
-            stock_level: parseInt(document.getElementById("stockLevel").value),
-            orders: parseInt(document.getElementById("dailyOrders").value),
-            days_until_next_festival: parseInt(document.getElementById("daysToFestival").value),
+            cost_price: costPrice,
+            current_price: currentPrice,
+            mrp: mrp,
+            competitor_avg_price: !isNaN(compPrice) && compPrice > 0 ? compPrice : currentPrice,
+            stock_level: !isNaN(stockLevel) && stockLevel >= 0 ? stockLevel : 50,
+            orders: !isNaN(dailyOrders) && dailyOrders >= 0 ? dailyOrders : 20,
+            days_until_next_festival: !isNaN(daysToFestival) && daysToFestival >= 0 ? daysToFestival : 45,
             weather_type: document.getElementById("weatherType").value,
             competitor_stock_status: "In_Stock"
         };
 
-        // Basic Client Validation
-        if (payload.cost_price > payload.mrp) {
-            alert("Cost Price cannot exceed Maximum Retail Price (MRP).");
-            return;
-        }
-
-        // Set Loading State
+        // UI Loading State
         submitBtn.disabled = true;
         btnText.style.display = "none";
         btnLoader.style.display = "flex";
@@ -115,90 +237,138 @@ document.addEventListener("DOMContentLoaded", () => {
             });
 
             if (!resp.ok) {
-                const errData = await resp.json();
-                throw new Error(errData.detail || "Pricing optimization request failed.");
+                const errJson = await resp.json().catch(() => ({}));
+                throw new Error(errJson.detail || "We couldn't generate a recommendation right now. Please check your inputs.");
             }
 
             const data = await resp.json();
-            renderResult(data);
+            renderRecommendation(data, payload);
         } catch (error) {
-            alert(`Error: ${error.message}`);
+            showError(error.message || "We couldn't generate a recommendation right now. Please check the network connection and try again.");
         } finally {
             submitBtn.disabled = false;
-            btnText.style.display = "block";
+            btnText.style.display = "flex";
             btnLoader.style.display = "none";
         }
     }
 
-    // 4. Render Recommendation Results
-    function renderResult(data) {
+    // -------------------------------------------------------------------------
+    // 6. Recommendation Results Renderer
+    // -------------------------------------------------------------------------
+    function renderRecommendation(data, payload) {
+        // Toggle view from placeholder to results
         resultPlaceholder.style.display = "none";
         resultContent.style.display = "flex";
 
-        // Main Prices
-        resCurrentPrice.textContent = formatINR(data.current_price);
-        resRecommendedPrice.textContent = formatINR(data.recommended_price);
+        // Product Subtitle
+        resProductSubtitle.textContent = payload.product_name;
 
-        // Price Diff & %
-        const diffSign = data.price_change >= 0 ? "+" : "";
-        resPriceDiff.textContent = `${diffSign}${formatINR(data.price_change)}`;
-        resPriceDiffPct.textContent = `${diffSign}${data.price_change_percentage.toFixed(1)}%`;
+        // Prices & Changes
+        const curr = data.current_price;
+        const rec = data.recommended_price;
+        const diff = data.price_change;
+        const pct = data.price_change_percent !== undefined ? data.price_change_percent : data.price_change_percentage;
 
-        // Color difference text
-        if (data.price_change > 0) {
+        resCurrentPrice.textContent = formatINR(curr);
+        resRecommendedPrice.textContent = formatINR(rec);
+
+        const sign = diff >= 0 ? "+" : "";
+        resPriceDiff.textContent = `${sign}${formatINR(diff)}`;
+        resPriceDiffPct.textContent = `${sign}${pct.toFixed(1)}%`;
+
+        // Color coding for diff
+        if (diff > 0) {
             resPriceDiff.style.color = "var(--accent-emerald)";
             resPriceDiffPct.style.color = "var(--accent-emerald)";
-        } else if (data.price_change < 0) {
+            resActionSummary.textContent = "Margin Expansion";
+        } else if (diff < 0) {
             resPriceDiff.style.color = "#60a5fa";
             resPriceDiffPct.style.color = "#60a5fa";
+            resActionSummary.textContent = "Volume Clearance";
         } else {
             resPriceDiff.style.color = "var(--accent-amber)";
             resPriceDiffPct.style.color = "var(--accent-amber)";
+            resActionSummary.textContent = "Maintain Position";
         }
 
-        // Recommendation Badge
-        resActionBadge.textContent = data.recommendation;
-        resActionBadge.className = "badge";
-        if (data.recommendation === "Increase Price") {
-            resActionBadge.classList.add("increase");
-        } else if (data.recommendation === "Decrease Price") {
-            resActionBadge.classList.add("decrease");
+        // Action Badge Update
+        const action = data.recommendation || (pct > 2 ? "Increase Price" : (pct < -2 ? "Decrease Price" : "Hold Price"));
+        badgeText.textContent = action;
+        resActionBadge.className = "action-badge";
+
+        if (action === "Increase Price") {
+            resActionBadge.classList.add("badge-increase");
+            badgeIcon.textContent = "arrow_upward";
+        } else if (action === "Decrease Price") {
+            resActionBadge.classList.add("badge-decrease");
+            badgeIcon.textContent = "arrow_downward";
         } else {
-            resActionBadge.classList.add("hold");
+            resActionBadge.classList.add("badge-hold");
+            badgeIcon.textContent = "horizontal_rule";
         }
 
-        // Guardrail Limits & Range Pin calculation
-        resMinPrice.textContent = `Min Floor: ${formatINR(data.min_allowed_price)}`;
-        resMaxPrice.textContent = `Max Ceiling: ${formatINR(data.max_allowed_price)}`;
+        // Guardrail Limits & Pin Position
+        const minP = data.min_allowed_price || (payload.cost_price * 1.05);
+        const maxP = data.max_allowed_price || (payload.mrp * 1.05);
+        const compP = payload.competitor_avg_price;
 
-        const min = data.min_allowed_price;
-        const max = data.max_allowed_price;
-        const rec = data.recommended_price;
-        let pct = 50;
-        if (max > min) {
-            pct = Math.max(5, Math.min(95, ((rec - min) / (max - min)) * 100));
+        resMinPrice.textContent = `Floor: ${formatINR(minP)}`;
+        resCompPrice.textContent = `Market: ${formatINR(compP)}`;
+        resMaxPrice.textContent = `Ceiling: ${formatINR(maxP)}`;
+        pinTooltip.textContent = formatINR(rec);
+
+        let pinPercent = 50;
+        if (maxP > minP) {
+            pinPercent = Math.max(8, Math.min(92, ((rec - minP) / (maxP - minP)) * 100));
         }
-        rangePin.style.left = `${pct}%`;
+        guardrailPin.style.left = `${pinPercent}%`;
 
-        // Render Insights
+        // Insights List
         resInsightsList.innerHTML = "";
-        data.insights.forEach(insight => {
+        const insights = data.insights && data.insights.length > 0
+            ? data.insights
+            : [
+                "Recommended price maximizes profit margin within active market demand elasticity.",
+                "Adheres strictly to guaranteed unit profit floor."
+            ];
+
+        insights.forEach(text => {
             const li = document.createElement("li");
-            li.textContent = insight;
+            li.textContent = text;
             resInsightsList.appendChild(li);
         });
 
-        // Smooth scroll on mobile
-        if (window.innerWidth < 960) {
-            resultContent.scrollIntoView({ behavior: 'smooth' });
+        // Inventory Runway Calculation & Badge
+        const dailyOrders = Math.max(payload.orders, 0.5);
+        const runwayDays = (payload.stock_level / dailyOrders).toFixed(1);
+        resInventoryRunway.textContent = runwayDays;
+
+        resInventoryStatusBadge.className = "stock-badge";
+        if (runwayDays < 3.0) {
+            resInventoryStatusBadge.classList.add("stock-low");
+            resInventoryStatusText.textContent = "Low Stock";
+        } else if (runwayDays > 45.0) {
+            resInventoryStatusBadge.classList.add("stock-high");
+            resInventoryStatusText.textContent = "High Stock";
+        } else {
+            resInventoryStatusBadge.classList.add("stock-good");
+            resInventoryStatusText.textContent = "Healthy Stock";
+        }
+
+        // Mobile Scroll To Result
+        if (window.innerWidth < 1100) {
+            resultContent.scrollIntoView({ behavior: "smooth", block: "start" });
         }
     }
 
+    // -------------------------------------------------------------------------
+    // 7. Event Listeners
+    // -------------------------------------------------------------------------
     form.addEventListener("submit", (e) => {
         e.preventDefault();
         submitForm();
     });
 
-    // Initialize presets
+    // Initialize presets on startup
     loadPresets();
 });
