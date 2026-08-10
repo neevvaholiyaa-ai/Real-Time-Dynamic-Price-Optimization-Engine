@@ -1,0 +1,130 @@
+{
+  "total_rows_evaluated": 145898,
+  "total_columns": 71,
+  "checks_passed": true,
+  "violations": {
+    "rejected_rows_count": 0
+  },
+  "elasticity_recovery": {
+    "Grocery": {
+      "seeded_elasticity": -1.0,
+      "recovered_elasticity": -0.988,
+      "r_squared": 0.089,
+      "p_value": 0.0,
+      "delta": 0.012,
+      "status": "PASS"
+    },
+    "Personal Care": {
+      "seeded_elasticity": -1.2,
+      "recovered_elasticity": -1.208,
+      "r_squared": 0.179,
+      "p_value": 0.0,
+      "delta": 0.008,
+      "status": "PASS"
+    },
+    "Home & Kitchen": {
+      "seeded_elasticity": -1.4,
+      "recovered_elasticity": -1.453,
+      "r_squared": 0.217,
+      "p_value": 0.0,
+      "delta": 0.053,
+      "status": "PASS"
+    },
+    "Footwear": {
+      "seeded_elasticity": -1.6,
+      "recovered_elasticity": -1.611,
+      "r_squared": 0.166,
+      "p_value": 0.0,
+      "delta": 0.011,
+      "status": "PASS"
+    },
+    "Sports & Fitness": {
+      "seeded_elasticity": -1.7,
+      "recovered_elasticity": -1.697,
+      "r_squared": 0.239,
+      "p_value": 0.0,
+      "delta": 0.003,
+      "status": "PASS"
+    },
+    "Fashion": {
+      "seeded_elasticity": -1.9,
+      "recovered_elasticity": -1.848,
+      "r_squared": 0.265,
+      "p_value": 0.0,
+      "delta": 0.052,
+      "status": "PASS"
+    },
+    "Mobile Accessories": {
+      "seeded_elasticity": -2.0,
+      "recovered_elasticity": -2.031,
+      "r_squared": 0.299,
+      "p_value": 0.0,
+      "delta": 0.031,
+      "status": "PASS"
+    },
+    "Electronics": {
+      "seeded_elasticity": -2.2,
+      "recovered_elasticity": -2.304,
+      "r_squared": 0.361,
+      "p_value": 0.0,
+      "delta": 0.104,
+      "status": "PASS"
+    }
+  },
+  "baseline_models": {
+    "target_variable": "Optimal_Markup_Pct = (Optimal_Price - Cost_Price) / Cost_Price",
+    "model_a_engineered_only": {
+      "description": "Contextual, demand, weather, festival, elasticity, and ratio features (Excluding raw price scales)",
+      "linear_regression_r2": 0.3577,
+      "linear_regression_mae": 0.2418,
+      "lightgbm_r2": 0.8525,
+      "lightgbm_mae": 0.0975,
+      "lightgbm_markup_error_pct": 9.75
+    },
+    "model_b_trivial_baseline": {
+      "description": "Cost_Price and Competitor_Avg_Price only",
+      "linear_regression_r2": 0.3709,
+      "linear_regression_mae": 0.2124,
+      "lightgbm_r2": 0.8622,
+      "lightgbm_mae": 0.0935,
+      "lightgbm_markup_error_pct": 9.35
+    },
+    "model_c_full_production": {
+      "description": "All 45 pricing, inventory, macro, and contextual features",
+      "lightgbm_r2": 0.9248,
+      "lightgbm_mae": 0.0704,
+      "lightgbm_markup_error_pct": 7.04,
+      "top_features": {
+        "Marketplace_Fee_Pct": 20251.28,
+        "Cost_Price": 11001.56,
+        "Return_Rate": 2621.03,
+        "Competitor_Avg_Price": 2009.9,
+        "Reorder_Point": 941.39,
+        "Price_Gap_Pct": 872.68,
+        "Price_Elasticity_Score": 706.16,
+        "Current_Price": 596.58
+      }
+    },
+    "linear_regression": {
+      "r2_score": 0.3577,
+      "mae": 0.2418,
+      "mape_pct": 24.18
+    },
+    "lightgbm": {
+      "r2_score": 0.9248,
+      "mae": 0.0704,
+      "mape_pct": 7.04,
+      "top_features": {
+        "Marketplace_Fee_Pct": 20251.28,
+        "Cost_Price": 11001.56,
+        "Return_Rate": 2621.03,
+        "Competitor_Avg_Price": 2009.9,
+        "Reorder_Point": 941.39,
+        "Price_Gap_Pct": 872.68,
+        "Price_Elasticity_Score": 706.16,
+        "Current_Price": 596.58
+      }
+    }
+  },
+  "outliers_capped": 350
+}

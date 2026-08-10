@@ -1,0 +1,445 @@
+{
+  "project_name": "Real-Time Dynamic Price Optimization Engine",
+  "generated_at_utc": "2026-08-09T13:25:52.496485Z",
+  "date_range": {
+    "start_date": "2023-01-01",
+    "end_date": "2026-08-02",
+    "total_calendar_days": 1310
+  },
+  "dataset_dimensions": {
+    "total_rows": 145898,
+    "total_columns": 71,
+    "unique_skus": 130,
+    "unique_categories": 8,
+    "cities_covered": [
+      "Ahmedabad",
+      "Surat"
+    ],
+    "file_size_csv_mb": 63.56,
+    "file_size_parquet_mb": 7.92,
+    "file_size_combined_mb": 71.48
+  },
+  "geographic_coordinates": {
+    "Ahmedabad": {
+      "latitude": 23.03,
+      "longitude": 72.58,
+      "state": "Gujarat",
+      "tier": "Tier-1 Metro"
+    },
+    "Surat": {
+      "latitude": 21.17,
+      "longitude": 72.83,
+      "state": "Gujarat",
+      "tier": "Tier-2 Commercial Hub"
+    }
+  },
+  "categories_and_elasticities": {
+    "Grocery": {
+      "seeded_elasticity": -1.0,
+      "marketplace_fee_pct": 8.0,
+      "avg_margin_pct": 18.0
+    },
+    "Personal Care": {
+      "seeded_elasticity": -1.2,
+      "marketplace_fee_pct": 10.0,
+      "avg_margin_pct": 28.0
+    },
+    "Home & Kitchen": {
+      "seeded_elasticity": -1.4,
+      "marketplace_fee_pct": 14.0,
+      "avg_margin_pct": 32.0
+    },
+    "Footwear": {
+      "seeded_elasticity": -1.6,
+      "marketplace_fee_pct": 13.0,
+      "avg_margin_pct": 35.0
+    },
+    "Sports & Fitness": {
+      "seeded_elasticity": -1.7,
+      "marketplace_fee_pct": 12.0,
+      "avg_margin_pct": 30.0
+    },
+    "Fashion": {
+      "seeded_elasticity": -1.9,
+      "marketplace_fee_pct": 15.0,
+      "avg_margin_pct": 42.0
+    },
+    "Mobile Accessories": {
+      "seeded_elasticity": -2.0,
+      "marketplace_fee_pct": 16.0,
+      "avg_margin_pct": 45.0
+    },
+    "Electronics": {
+      "seeded_elasticity": -2.2,
+      "marketplace_fee_pct": 12.0,
+      "avg_margin_pct": 22.0
+    }
+  },
+  "source_tag_breakdown": {
+    "real_api": 10,
+    "simulated_documented": 31,
+    "derived_engineered": 30
+  },
+  "columns": {
+    "Product_ID": {
+      "dtype": "string",
+      "source_tag": "simulated_documented",
+      "group": "Identifiers"
+    },
+    "Product_Name": {
+      "dtype": "string",
+      "source_tag": "simulated_documented",
+      "group": "Identifiers"
+    },
+    "Brand": {
+      "dtype": "string",
+      "source_tag": "simulated_documented",
+      "group": "Identifiers"
+    },
+    "Category": {
+      "dtype": "string",
+      "source_tag": "simulated_documented",
+      "group": "Identifiers"
+    },
+    "Subcategory": {
+      "dtype": "string",
+      "source_tag": "simulated_documented",
+      "group": "Identifiers"
+    },
+    "SKU": {
+      "dtype": "string",
+      "source_tag": "simulated_documented",
+      "group": "Identifiers"
+    },
+    "City": {
+      "dtype": "string",
+      "source_tag": "simulated_documented",
+      "group": "Identifiers"
+    },
+    "Date": {
+      "dtype": "date",
+      "source_tag": "simulated_documented",
+      "group": "Identifiers"
+    },
+    "Day_of_Week": {
+      "dtype": "int8",
+      "source_tag": "derived_engineered",
+      "group": "Temporal"
+    },
+    "Month": {
+      "dtype": "int8",
+      "source_tag": "derived_engineered",
+      "group": "Temporal"
+    },
+    "Quarter": {
+      "dtype": "int8",
+      "source_tag": "derived_engineered",
+      "group": "Temporal"
+    },
+    "Is_Weekend": {
+      "dtype": "bool",
+      "source_tag": "derived_engineered",
+      "group": "Temporal"
+    },
+    "Is_Holiday": {
+      "dtype": "bool",
+      "source_tag": "real_api",
+      "group": "Temporal"
+    },
+    "Festival_Name": {
+      "dtype": "string",
+      "source_tag": "real_api",
+      "group": "Temporal"
+    },
+    "Days_Until_Next_Festival": {
+      "dtype": "int16",
+      "source_tag": "derived_engineered",
+      "group": "Temporal"
+    },
+    "Is_Month_End": {
+      "dtype": "bool",
+      "source_tag": "derived_engineered",
+      "group": "Temporal"
+    },
+    "Days_Since_Launch": {
+      "dtype": "int16",
+      "source_tag": "derived_engineered",
+      "group": "Temporal"
+    },
+    "Days_Since_Last_Price_Change": {
+      "dtype": "int16",
+      "source_tag": "derived_engineered",
+      "group": "Temporal"
+    },
+    "MRP": {
+      "dtype": "float32",
+      "source_tag": "simulated_documented",
+      "group": "Pricing & Cost"
+    },
+    "Cost_Price": {
+      "dtype": "float32",
+      "source_tag": "simulated_documented",
+      "group": "Pricing & Cost"
+    },
+    "Current_Price": {
+      "dtype": "float32",
+      "source_tag": "simulated_documented",
+      "group": "Pricing & Cost"
+    },
+    "Discount_Pct": {
+      "dtype": "float32",
+      "source_tag": "derived_engineered",
+      "group": "Pricing & Cost"
+    },
+    "Margin_Pct": {
+      "dtype": "float32",
+      "source_tag": "derived_engineered",
+      "group": "Pricing & Cost"
+    },
+    "Min_Allowed_Price": {
+      "dtype": "float32",
+      "source_tag": "simulated_documented",
+      "group": "Pricing & Cost"
+    },
+    "Max_Allowed_Price": {
+      "dtype": "float32",
+      "source_tag": "simulated_documented",
+      "group": "Pricing & Cost"
+    },
+    "Marketplace_Fee_Pct": {
+      "dtype": "float32",
+      "source_tag": "simulated_documented",
+      "group": "Pricing & Cost"
+    },
+    "Stock_Level": {
+      "dtype": "int32",
+      "source_tag": "simulated_documented",
+      "group": "Inventory"
+    },
+    "Reorder_Point": {
+      "dtype": "int32",
+      "source_tag": "simulated_documented",
+      "group": "Inventory"
+    },
+    "Lead_Time_Days": {
+      "dtype": "int16",
+      "source_tag": "simulated_documented",
+      "group": "Inventory"
+    },
+    "Stock_Out_Risk": {
+      "dtype": "float32",
+      "source_tag": "derived_engineered",
+      "group": "Inventory"
+    },
+    "Warehouse_ID": {
+      "dtype": "string",
+      "source_tag": "simulated_documented",
+      "group": "Inventory"
+    },
+    "Restock_Cost": {
+      "dtype": "float32",
+      "source_tag": "simulated_documented",
+      "group": "Inventory"
+    },
+    "Temperature": {
+      "dtype": "float32",
+      "source_tag": "real_api",
+      "group": "Weather"
+    },
+    "Humidity": {
+      "dtype": "float32",
+      "source_tag": "real_api",
+      "group": "Weather"
+    },
+    "Rainfall": {
+      "dtype": "float32",
+      "source_tag": "real_api",
+      "group": "Weather"
+    },
+    "Weather_Type": {
+      "dtype": "string",
+      "source_tag": "real_api",
+      "group": "Weather"
+    },
+    "Is_Extreme_Weather": {
+      "dtype": "bool",
+      "source_tag": "derived_engineered",
+      "group": "Weather"
+    },
+    "USD_INR": {
+      "dtype": "float32",
+      "source_tag": "real_api",
+      "group": "Macroeconomics"
+    },
+    "Crude_Oil_Price_USD": {
+      "dtype": "float32",
+      "source_tag": "real_api",
+      "group": "Macroeconomics"
+    },
+    "Gold_Price": {
+      "dtype": "float32",
+      "source_tag": "real_api",
+      "group": "Macroeconomics"
+    },
+    "Inflation_Index": {
+      "dtype": "float32",
+      "source_tag": "simulated_documented",
+      "group": "Macroeconomics"
+    },
+    "Consumer_Confidence_Proxy": {
+      "dtype": "float32",
+      "source_tag": "simulated_documented",
+      "group": "Macroeconomics"
+    },
+    "Competitor_Avg_Price": {
+      "dtype": "float32",
+      "source_tag": "simulated_documented",
+      "group": "Competitor Intelligence"
+    },
+    "Competitor_Min_Price": {
+      "dtype": "float32",
+      "source_tag": "simulated_documented",
+      "group": "Competitor Intelligence"
+    },
+    "Price_Gap_Pct": {
+      "dtype": "float32",
+      "source_tag": "derived_engineered",
+      "group": "Competitor Intelligence"
+    },
+    "Competitor_Stock_Status": {
+      "dtype": "string",
+      "source_tag": "simulated_documented",
+      "group": "Competitor Intelligence"
+    },
+    "Competitor_Discount_Pct": {
+      "dtype": "float32",
+      "source_tag": "simulated_documented",
+      "group": "Competitor Intelligence"
+    },
+    "Market_Rank": {
+      "dtype": "int8",
+      "source_tag": "simulated_documented",
+      "group": "Competitor Intelligence"
+    },
+    "Views": {
+      "dtype": "int32",
+      "source_tag": "simulated_documented",
+      "group": "Demand Signals"
+    },
+    "Clicks": {
+      "dtype": "int32",
+      "source_tag": "simulated_documented",
+      "group": "Demand Signals"
+    },
+    "Cart_Adds": {
+      "dtype": "int32",
+      "source_tag": "simulated_documented",
+      "group": "Demand Signals"
+    },
+    "Orders": {
+      "dtype": "int32",
+      "source_tag": "simulated_documented",
+      "group": "Demand Signals"
+    },
+    "Conversion_Rate": {
+      "dtype": "float32",
+      "source_tag": "derived_engineered",
+      "group": "Demand Signals"
+    },
+    "Search_Trend_Index": {
+      "dtype": "float32",
+      "source_tag": "real_api",
+      "group": "Demand Signals"
+    },
+    "Demand_Index": {
+      "dtype": "float32",
+      "source_tag": "derived_engineered",
+      "group": "Demand Signals"
+    },
+    "Return_Rate": {
+      "dtype": "float32",
+      "source_tag": "simulated_documented",
+      "group": "Demand Signals"
+    },
+    "Price_Lag_7": {
+      "dtype": "float32",
+      "source_tag": "derived_engineered",
+      "group": "Engineered Features"
+    },
+    "Demand_Lag_7": {
+      "dtype": "float32",
+      "source_tag": "derived_engineered",
+      "group": "Engineered Features"
+    },
+    "Rolling_Avg_Price_30d": {
+      "dtype": "float32",
+      "source_tag": "derived_engineered",
+      "group": "Engineered Features"
+    },
+    "Price_Elasticity_Score": {
+      "dtype": "float32",
+      "source_tag": "derived_engineered",
+      "group": "Engineered Features"
+    },
+    "Seasonality_Impact_Score": {
+      "dtype": "float32",
+      "source_tag": "derived_engineered",
+      "group": "Engineered Features"
+    },
+    "Festival_Impact_Score": {
+      "dtype": "float32",
+      "source_tag": "derived_engineered",
+      "group": "Engineered Features"
+    },
+    "Weather_Impact_Score": {
+      "dtype": "float32",
+      "source_tag": "derived_engineered",
+      "group": "Engineered Features"
+    },
+    "Price_Volatility_30d": {
+      "dtype": "float32",
+      "source_tag": "derived_engineered",
+      "group": "Engineered Features"
+    },
+    "Price_to_Competitor_Ratio": {
+      "dtype": "float32",
+      "source_tag": "derived_engineered",
+      "group": "AI-Suggested Features"
+    },
+    "Stock_Days_Remaining": {
+      "dtype": "float32",
+      "source_tag": "derived_engineered",
+      "group": "AI-Suggested Features"
+    },
+    "Demand_Momentum_7d": {
+      "dtype": "float32",
+      "source_tag": "derived_engineered",
+      "group": "AI-Suggested Features"
+    },
+    "Revenue_Per_Unit": {
+      "dtype": "float32",
+      "source_tag": "derived_engineered",
+      "group": "AI-Suggested Features"
+    },
+    "Price_Rank_in_Category": {
+      "dtype": "int8",
+      "source_tag": "derived_engineered",
+      "group": "AI-Suggested Features"
+    },
+    "Fuel_Price_INR_Proxy": {
+      "dtype": "float32",
+      "source_tag": "derived_engineered",
+      "group": "AI-Suggested Features"
+    },
+    "Optimal_Price": {
+      "dtype": "float32",
+      "source_tag": "derived_engineered",
+      "group": "Target"
+    }
+  },
+  "validation_summary": {
+    "checks_passed": true,
+    "linear_regression_r2": 0.3577,
+    "lightgbm_r2": 0.9248
+  }
+}
