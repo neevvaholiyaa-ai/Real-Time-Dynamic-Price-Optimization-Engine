@@ -8,7 +8,15 @@
       "destination": "/frontend/:path*"
     },
     {
-      "source": "/",
+      "source": "/predict",
+      "destination": "/frontend/index.html"
+    },
+    {
+      "source": "/api/:path*",
+      "destination": "/frontend/index.html"
+    },
+    {
+      "source": "/(.*)",
       "destination": "/frontend/index.html"
     }
   ]

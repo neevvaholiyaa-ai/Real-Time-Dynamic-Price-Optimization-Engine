@@ -96,23 +96,29 @@ def get_catalog_samples():
     """
     return [
         {
-            "label": "Wireless Headphones (Electronics, Low Stock, Festive Peak)",
+            "id": "festive-kurta",
+            "name": "Festive Kurta",
+            "subtitle": "Diwali demand spike",
+            "icon": "celebration",
             "product_id": "P001",
-            "product_name": "Wireless Noise Cancelling Headphones Pro",
-            "category": "Electronics",
+            "product_name": "Handcrafted Bandhani Festive Kurta",
+            "category": "Fashion",
             "city": "Ahmedabad",
-            "cost_price": 2500.0,
-            "current_price": 4200.0,
-            "mrp": 4999.0,
-            "competitor_avg_price": 4150.0,
-            "stock_level": 25,
-            "orders": 65,
-            "days_until_next_festival": 3,
+            "cost_price": 650.0,
+            "current_price": 1299.0,
+            "mrp": 1999.0,
+            "competitor_avg_price": 1350.0,
+            "stock_level": 90,
+            "orders": 48,
+            "days_until_next_festival": 5,
             "weather_type": "Clear",
-            "competitor_stock_status": "In_Stock"
+            "competitor_stock_status": "Low_Stock"
         },
         {
-            "label": "Basmati Rice 5kg (Grocery, High Stock, Monsoon)",
+            "id": "basmati-rice",
+            "name": "Basmati Rice 5kg",
+            "subtitle": "Steady grocery item",
+            "icon": "inventory_2",
             "product_id": "P002",
             "product_name": "Royal Premium Basmati Rice 5kg",
             "category": "Grocery",
@@ -128,23 +134,29 @@ def get_catalog_samples():
             "competitor_stock_status": "In_Stock"
         },
         {
-            "label": "Designer Cotton Kurta (Fashion, Festival Approaching)",
+            "id": "wireless-earbuds",
+            "name": "Wireless Earbuds",
+            "subtitle": "High competition",
+            "icon": "headphones",
             "product_id": "P003",
-            "product_name": "Handcrafted Bandhani Festive Kurta",
-            "category": "Fashion",
+            "product_name": "True Wireless Noise Cancelling Earbuds",
+            "category": "Electronics",
             "city": "Ahmedabad",
-            "cost_price": 650.0,
-            "current_price": 1299.0,
-            "mrp": 1999.0,
-            "competitor_avg_price": 1350.0,
-            "stock_level": 90,
-            "orders": 48,
-            "days_until_next_festival": 5,
+            "cost_price": 1800.0,
+            "current_price": 2999.0,
+            "mrp": 3999.0,
+            "competitor_avg_price": 2950.0,
+            "stock_level": 80,
+            "orders": 40,
+            "days_until_next_festival": 25,
             "weather_type": "Clear",
-            "competitor_stock_status": "Low_Stock"
+            "competitor_stock_status": "In_Stock"
         },
         {
-            "label": "Smart Fitness Watch (Electronics, Overstock Clearance)",
+            "id": "smart-watch",
+            "name": "Smart Watch",
+            "subtitle": "Competitive electronics",
+            "icon": "watch",
             "product_id": "P004",
             "product_name": "Smart Fitness Watch 1.83 inch",
             "category": "Electronics",
@@ -160,6 +172,22 @@ def get_catalog_samples():
             "competitor_stock_status": "In_Stock"
         }
     ]
+
+@app.post("/api/batch-predict", tags=["Pricing"])
+def batch_predict(items: List[PricePredictionRequest]):
+    """
+    Batch predict optimal prices for multiple products.
+    Returns a list of price recommendations.
+    """
+    results = []
+    for item in items:
+        try:
+            input_dict = item.model_dump()
+            result = predict_optimal_price(input_dict)
+            results.append(result)
+        except Exception as e:
+            results.append({"product_id": item.product_id, "error": str(e)})
+    return results
 
 # =============================================================================
 # Mount Static Files & Root Route
