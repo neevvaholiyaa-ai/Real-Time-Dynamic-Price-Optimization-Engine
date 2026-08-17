@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AuraPrice Engine | Real-Time Dynamic Price Optimization</title>
-    <meta name="description" content="AI-powered real-time dynamic price optimization engine for multi-city retail enterprises in Gujarat. Optimize margins, monitor competitors, and maximize revenue.">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AuraPrice Engine | Real-Time Dynamic Pricing & Price Optimization</title>
+    <meta name="description" content="AI-powered real-time dynamic pricing and price optimization engine for multi-city retail enterprises in Gujarat (Ahmedabad and Surat). Optimize margins, monitor competitors, and maximize revenue.">
     
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -30,8 +30,11 @@
                         <span class="sidebar-brand-name">AuraPrice</span>
                         <span class="sidebar-brand-sub">Engine v3.8</span>
                     </div>
+                    <button class="sidebar-close-btn" id="sidebarCloseBtn" aria-label="Close Navigation Sidebar">
+                        <span class="material-symbols-outlined">close</span>
+                    </button>
                 </div>
-                <div class="sidebar-health">
+                <div class="sidebar-health" id="sidebarHealthIndicator">
                     <span class="health-dot"></span>
                     <span>Engine Health: Optimal</span>
                 </div>
@@ -72,13 +75,13 @@
                     <span class="material-symbols-outlined">bolt</span>
                     <span>Engine Status</span>
                 </button>
-                <button class="sidebar-footer-btn">
+                <button class="sidebar-footer-btn" id="sidebarSettingsBtn">
                     <span class="material-symbols-outlined">settings</span>
                     <span>Settings</span>
                 </button>
-                <button class="sidebar-footer-btn">
+                <button class="sidebar-footer-btn" id="sidebarSupportBtn">
                     <span class="material-symbols-outlined">help_outline</span>
-                    <span>Support</span>
+                    <span>Support & Docs</span>
                 </button>
             </div>
         </aside>
@@ -92,7 +95,7 @@
         <div class="app-main">
             <!-- Top Header Bar -->
             <header class="app-header">
-                <button class="mobile-menu-btn" id="mobileMenuBtn">
+                <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Toggle Menu">
                     <span class="material-symbols-outlined">menu</span>
                 </button>
 
@@ -100,42 +103,45 @@
                     <span class="header-brand-name">AuraPrice Engine</span>
                 </div>
 
-                <div class="header-search">
-                    <span class="material-symbols-outlined header-search-icon">search</span>
-                    <input type="text" class="header-search-input" placeholder="Search Analytics..." id="headerSearch">
+                <!-- City Switcher: Strictly Ahmedabad & Surat -->
+                <div class="city-switcher" id="citySwitcher">
+                    <button class="city-pill active" data-city="Ahmedabad" id="cityPillAhmedabad">
+                        <span class="material-symbols-outlined city-pill-icon">location_city</span>
+                        <span>Ahmedabad</span>
+                    </button>
+                    <button class="city-pill" data-city="Surat" id="cityPillSurat">
+                        <span class="material-symbols-outlined city-pill-icon">storefront</span>
+                        <span>Surat</span>
+                    </button>
                 </div>
 
-                <!-- City Switcher -->
-                <div class="city-switcher" id="citySwitcher">
-                    <button class="city-pill active" data-city="Ahmedabad">Ahmedabad</button>
-                    <button class="city-pill" data-city="Surat">Surat</button>
-                    <button class="city-pill" data-city="Vadodara">Vadodara</button>
-                    <button class="city-pill" data-city="Mumbai">Mumbai</button>
-                    <button class="city-pill" data-city="Rajkot">Rajkot</button>
+                <div class="header-search">
+                    <span class="material-symbols-outlined header-search-icon">search</span>
+                    <input type="text" class="header-search-input" placeholder="Search catalog or metrics..." id="headerSearch">
                 </div>
 
                 <div class="header-spacer"></div>
 
                 <!-- Right Actions -->
                 <div class="header-actions">
-                    <div class="live-sync-pill">
+                    <div class="live-sync-pill" id="liveSyncPill">
                         <span class="live-dot"></span>
-                        <span>Live Sync</span>
+                        <span class="live-sync-text">Live Sync</span>
                     </div>
-                    <button class="batch-reprice-btn" id="batchRepriceBtn">
+                    <button class="batch-reprice-btn" id="batchRepriceBtn" title="Run Batch Pricing">
                         <span class="material-symbols-outlined">bolt</span>
-                        <span>Batch Reprice</span>
+                        <span class="batch-text">Batch Reprice</span>
                     </button>
-                    <button class="header-icon-btn" id="notifBtn" title="Notifications">
-                        <span class="material-symbols-outlined">notifications</span>
+                    <button class="header-icon-btn" id="headerSettingsBtn" title="Pricing Engine Settings">
+                        <span class="material-symbols-outlined">settings</span>
                     </button>
-                    <button class="header-icon-btn" id="profileBtn" title="Profile">
-                        <span class="material-symbols-outlined">account_circle</span>
+                    <button class="header-icon-btn" id="headerSupportBtn" title="Diagnostics & Support">
+                        <span class="material-symbols-outlined">info</span>
                     </button>
                 </div>
             </header>
 
-            <!-- Page Content -->
+            <!-- Page Content Container -->
             <main class="page-content">
 
                 <!-- ══════════════════════════════════════════════════════════
@@ -143,8 +149,11 @@
                      ══════════════════════════════════════════════════════════ -->
                 <section class="view-container active" id="viewOverview">
                     <div class="page-title-section">
-                        <h1 class="page-title">Live Telemetry & Command Center</h1>
-                        <p class="page-subtitle">Live aggregated data across all active markets. <span class="page-subtitle-highlight" id="overviewCityLabel">Ahmedabad Region</span></p>
+                        <div class="title-with-pill">
+                            <h1 class="page-title">Live Telemetry & Command Center</h1>
+                            <span class="city-badge-indicator" id="overviewCityBadge">Ahmedabad Hub</span>
+                        </div>
+                        <p class="page-subtitle">Real-time demand signals, elasticity benchmarks, and automated margin protection across <span class="page-subtitle-highlight" id="overviewCityLabel">Ahmedabad Region</span>.</p>
                     </div>
 
                     <!-- KPI Cards -->
@@ -159,7 +168,7 @@
                             <div class="kpi-value" id="kpiMarginLift">+16.8%</div>
                             <div class="kpi-sub kpi-sub-emerald">
                                 <span class="material-symbols-outlined" style="font-size:14px;">arrow_upward</span>
-                                <span>+2.4% vs last period</span>
+                                <span>+2.4% vs static baseline</span>
                             </div>
                             <canvas class="kpi-sparkline" id="sparklineMargin"></canvas>
                         </div>
@@ -172,7 +181,7 @@
                                 </div>
                             </div>
                             <div class="kpi-value" id="kpiElasticity">-1.35</div>
-                            <div class="kpi-sub kpi-sub-muted">Inelastic — Room for price hike</div>
+                            <div class="kpi-sub kpi-sub-muted" id="kpiElasticityDesc">Inelastic — Room for margin expansion</div>
                         </div>
 
                         <div class="kpi-card">
@@ -206,7 +215,7 @@
                             <div class="kpi-value" id="kpiRunway">9 <span style="font-size:0.85rem;font-weight:600;color:var(--text-secondary);">Days</span></div>
                             <div class="kpi-warning-badge kpi-warning-amber" id="kpiRunwayBadge">
                                 <span class="material-symbols-outlined" style="font-size:13px;">warning</span>
-                                <span>Warning</span>
+                                <span id="kpiRunwayText">Scarcity Premium Active</span>
                             </div>
                         </div>
                     </div>
@@ -216,7 +225,10 @@
                         <!-- Profit Optimization Chart -->
                         <div class="card chart-card">
                             <div class="chart-card-header">
-                                <h2 class="chart-title">Price-Demand-Profit Optimization Frontier</h2>
+                                <div>
+                                    <h2 class="chart-title">Price-Demand-Profit Optimization Frontier</h2>
+                                    <p class="chart-subtitle">Microeconomic First-Order Condition $\Pi(p) = (p - c \cdot (1+f)) \cdot Q(p)$</p>
+                                </div>
                                 <div class="chart-legend">
                                     <div class="legend-item"><span class="legend-dot legend-dot-blue"></span> Profit Curve</div>
                                     <div class="legend-item"><span class="legend-dot legend-dot-emerald"></span> Demand Curve</div>
@@ -245,100 +257,232 @@
                         <div class="urgent-header">
                             <div class="urgent-title-group">
                                 <h2 class="urgent-title">Urgent Reprice Action Queue</h2>
-                                <p class="urgent-subtitle" id="urgentSubtitle">Top 5 high-impact SKUs requiring immediate attention</p>
+                                <p class="urgent-subtitle" id="urgentSubtitle">Top high-impact SKUs requiring immediate price adjustments</p>
                             </div>
                             <button class="approve-all-btn" id="approveAllBtn">
                                 <span class="material-symbols-outlined">done_all</span>
-                                <span>Approve All</span>
+                                <span>Approve All Recommended</span>
                             </button>
                         </div>
-                        <table class="data-table" id="urgentTable">
-                            <thead>
-                                <tr>
-                                    <th>SKU Details</th>
-                                    <th>Current Price</th>
-                                    <th>Recommended Price</th>
-                                    <th>Projected Impact</th>
-                                    <th>Action</th>
-                                </tr>
-                            </thead>
-                            <tbody id="urgentTableBody">
-                                <!-- Populated by JS -->
-                            </tbody>
-                        </table>
+                        <div class="table-responsive-wrapper">
+                            <table class="data-table" id="urgentTable">
+                                <thead>
+                                    <tr>
+                                        <th>SKU / Product</th>
+                                        <th>Category</th>
+                                        <th>Current Price</th>
+                                        <th>AI Recommended</th>
+                                        <th>Projected Impact</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="urgentTableBody">
+                                    <!-- Populated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </section>
 
                 <!-- ══════════════════════════════════════════════════════════
-                     VIEW 2: WHAT-IF SIMULATOR
+                     VIEW 2: WHAT-IF SIMULATOR & CUSTOM PRICING ENGINE
                      ══════════════════════════════════════════════════════════ -->
                 <section class="view-container" id="viewSimulator">
                     <div class="page-title-section">
-                        <h1 class="page-title">What-If Pricing Sandbox</h1>
-                        <p class="page-subtitle">Elasticity Lab & Scenario Simulation</p>
+                        <h1 class="page-title">What-If Pricing Sandbox & Custom Optimizer</h1>
+                        <p class="page-subtitle">Test pricing scenarios for 130 catalog SKUs or run real-time LightGBM inference on ANY custom product.</p>
+                    </div>
+
+                    <!-- Mode Switcher Tabs -->
+                    <div class="sim-mode-switcher">
+                        <button class="sim-mode-btn active" id="tabCatalogMode" data-tab="catalog">
+                            <span class="material-symbols-outlined">inventory_2</span>
+                            <span>Catalog SKU Explorer (130 SKUs)</span>
+                        </button>
+                        <button class="sim-mode-btn" id="tabCustomMode" data-tab="custom">
+                            <span class="material-symbols-outlined">tune</span>
+                            <span>Custom Product Pricing Calculator</span>
+                        </button>
                     </div>
 
                     <div class="simulator-layout">
                         <!-- Left: Controls -->
                         <div class="simulator-left">
-                            <!-- Target Asset + Presets -->
-                            <div class="card target-asset-card">
-                                <div class="target-row">
-                                    <div class="target-select-group">
-                                        <label class="target-label" for="simProductSelect">Target Asset</label>
-                                        <select class="target-select" id="simProductSelect">
-                                            <option value="festive-kurta">Festive Silk Kurta (SKU #8942)</option>
-                                            <option value="basmati-rice">Basmati Rice 5kg (SKU #1023)</option>
-                                            <option value="wireless-earbuds">Wireless Earbuds (SKU #4571)</option>
-                                            <option value="smart-watch">Smart Fitness Watch (SKU #3389)</option>
+                            
+                            <!-- ── MODE A: CATALOG PRESET EXPLORER ── -->
+                            <div class="card target-asset-card" id="catalogModePanel">
+                                <h3 class="card-section-title">Select Catalog Product</h3>
+                                <div class="catalog-select-grid">
+                                    <div class="form-group">
+                                        <label class="form-label" for="simCategorySelect">Category (8 Available)</label>
+                                        <select class="form-control" id="simCategorySelect">
+                                            <option value="Electronics">Electronics (18 SKUs)</option>
+                                            <option value="Grocery">Grocery (18 SKUs)</option>
+                                            <option value="Fashion">Fashion (17 SKUs)</option>
+                                            <option value="Home & Kitchen">Home & Kitchen (17 SKUs)</option>
+                                            <option value="Personal Care">Personal Care (15 SKUs)</option>
+                                            <option value="Mobile Accessories">Mobile Accessories (15 SKUs)</option>
+                                            <option value="Footwear">Footwear (15 SKUs)</option>
+                                            <option value="Sports & Fitness">Sports & Fitness (15 SKUs)</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label" for="simProductSelect">Product SKU</label>
+                                        <select class="form-control" id="simProductSelect">
+                                            <!-- Dynamically populated by JS -->
                                         </select>
                                     </div>
                                 </div>
-                                <div class="preset-chips" id="presetChips">
-                                    <span class="target-label" style="width:100%;margin-bottom:-0.25rem;">Quick Presets</span>
-                                    <button class="preset-chip active" data-preset="diwali">Diwali Rush</button>
-                                    <button class="preset-chip" data-preset="pricewar">Competitor Price War</button>
-                                    <button class="preset-chip" data-preset="clearance">Clearance</button>
-                                    <button class="preset-chip" data-preset="normal">Normal Day</button>
+
+                                <div class="preset-chips-section">
+                                    <span class="form-label" style="margin-bottom:0.4rem;display:block;">Quick Scenario Presets</span>
+                                    <div class="preset-chips" id="presetChips">
+                                        <button class="preset-chip active" data-preset="diwali">Diwali Rush (+30% Demand)</button>
+                                        <button class="preset-chip" data-preset="pricewar">Competitor Price War (-12%)</button>
+                                        <button class="preset-chip" data-preset="clearance">Clearance (High Stock)</button>
+                                        <button class="preset-chip" data-preset="normal">Standard Normal Day</button>
+                                    </div>
                                 </div>
                             </div>
 
-                            <!-- Market Conditions Sliders -->
+                            <!-- ── MODE B: CUSTOM PRODUCT PRICING CALCULATOR ── -->
+                            <div class="card custom-product-card" id="customModePanel" style="display: none;">
+                                <div class="custom-card-header">
+                                    <div>
+                                        <h3 class="card-section-title">Custom Product Parameters</h3>
+                                        <p class="custom-card-sub">Input custom item specifications for instant LightGBM model inference</p>
+                                    </div>
+                                    <button class="btn-sample-fill" id="btnFillOnePlus" type="button">
+                                        <span class="material-symbols-outlined">smartphone</span>
+                                        <span>Load OnePlus 12R</span>
+                                    </button>
+                                </div>
+
+                                <div class="custom-form-grid">
+                                    <div class="form-group full-width">
+                                        <label class="form-label" for="customProdName">Product / SKU Name</label>
+                                        <input type="text" class="form-control" id="customProdName" placeholder="e.g. OnePlus 12R 5G (16GB/256GB)" value="OnePlus 12R 5G 16GB/256GB">
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="form-label" for="customCategory">Category</label>
+                                        <select class="form-control" id="customCategory">
+                                            <option value="Electronics" selected>Electronics</option>
+                                            <option value="Fashion">Fashion</option>
+                                            <option value="Footwear">Footwear</option>
+                                            <option value="Grocery">Grocery</option>
+                                            <option value="Home & Kitchen">Home & Kitchen</option>
+                                            <option value="Mobile Accessories">Mobile Accessories</option>
+                                            <option value="Personal Care">Personal Care</option>
+                                            <option value="Sports & Fitness">Sports & Fitness</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="form-label" for="customCity">Fulfillment City</label>
+                                        <select class="form-control" id="customCity">
+                                            <option value="Ahmedabad" selected>Ahmedabad Hub</option>
+                                            <option value="Surat">Surat Hub</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="form-label" for="customCostPrice">Cost Price (₹)</label>
+                                        <input type="number" class="form-control" id="customCostPrice" placeholder="32000" value="32000" min="1" step="1">
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="form-label" for="customCurrentPrice">Current Active Price (₹)</label>
+                                        <input type="number" class="form-control" id="customCurrentPrice" placeholder="39999" value="39999" min="1" step="1">
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="form-label" for="customMRP">MRP (₹)</label>
+                                        <input type="number" class="form-control" id="customMRP" placeholder="45999" value="45999" min="1" step="1">
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="form-label" for="customCompPrice">Competitor Avg Price (₹)</label>
+                                        <input type="number" class="form-control" id="customCompPrice" placeholder="38990" value="38990" min="1" step="1">
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="form-label" for="customStock">Warehouse Stock (Units)</label>
+                                        <input type="number" class="form-control" id="customStock" placeholder="45" value="45" min="0">
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="form-label" for="customOrders">Daily Velocity (Orders)</label>
+                                        <input type="number" class="form-control" id="customOrders" placeholder="28" value="28" min="1">
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="form-label" for="customFestivalDays">Days to Next Festival</label>
+                                        <input type="number" class="form-control" id="customFestivalDays" placeholder="14" value="14" min="0" max="365">
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="form-label" for="customWeather">Weather Condition</label>
+                                        <select class="form-control" id="customWeather">
+                                            <option value="Clear" selected>Clear</option>
+                                            <option value="Rainy">Rainy</option>
+                                            <option value="Overcast">Overcast</option>
+                                            <option value="Partly Cloudy">Partly Cloudy</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="form-group full-width">
+                                        <label class="form-label" for="customCompStock">Competitor Stock Status</label>
+                                        <select class="form-control" id="customCompStock">
+                                            <option value="In_Stock" selected>In Stock (Standard Competition)</option>
+                                            <option value="Low_Stock">Low Stock (Opportunity to Expand Margin)</option>
+                                            <option value="Out_of_Stock">Out of Stock (Capture Full Demand)</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <button class="btn-calculate-custom" id="btnCalculateCustom" type="button">
+                                    <span class="material-symbols-outlined">calculate</span>
+                                    <span>Calculate Dynamic Price Recommendation</span>
+                                </button>
+                            </div>
+
+                            <!-- Market Conditions Sliders (Shared across both modes) -->
                             <div class="card market-conditions-card">
-                                <h3 class="card-title" style="margin-bottom:1rem;">Market Conditions</h3>
+                                <h3 class="card-section-title">Market Context & Dynamic Knobs</h3>
                                 <div class="slider-group">
                                     <div class="slider-item">
                                         <div class="slider-label-row">
-                                            <span class="slider-label">Competitor Avg. Price</span>
-                                            <span class="slider-value" id="sliderCompVal">₹1,150</span>
+                                            <span class="slider-label">Competitor Market Anchor Price</span>
+                                            <span class="slider-value" id="sliderCompVal">₹38,990</span>
                                         </div>
-                                        <input type="range" id="sliderComp" min="500" max="3000" value="1150" step="10">
+                                        <input type="range" id="sliderComp" min="500" max="80000" value="38990" step="10">
                                     </div>
                                     <div class="slider-item">
                                         <div class="slider-label-row">
-                                            <span class="slider-label">Demand Multiplier</span>
+                                            <span class="slider-label">Demand Elasticity Multiplier</span>
                                             <span class="slider-value" id="sliderDemandVal">1.2x</span>
                                         </div>
                                         <input type="range" id="sliderDemand" min="50" max="250" value="120" step="5">
                                     </div>
                                     <div class="slider-item">
                                         <div class="slider-label-row">
-                                            <span class="slider-label">Inventory Runway (Days)</span>
+                                            <span class="slider-label">Inventory Runway (Days Remaining)</span>
                                             <span class="slider-value" id="sliderInventoryVal">45</span>
                                         </div>
-                                        <input type="range" id="sliderInventory" min="1" max="90" value="45" step="1">
+                                        <input type="range" id="sliderInventory" min="1" max="180" value="45" step="1">
                                     </div>
                                     <div class="slider-item">
                                         <div class="slider-label-row">
-                                            <span class="slider-label">Margin Floor (%)</span>
-                                            <span class="slider-value" id="sliderMarginVal">25%</span>
+                                            <span class="slider-label">Margin Floor Guardrail (%)</span>
+                                            <span class="slider-value" id="sliderMarginVal">5.5%</span>
                                         </div>
-                                        <input type="range" id="sliderMargin" min="5" max="50" value="25" step="1">
+                                        <input type="range" id="sliderMargin" min="5" max="30" value="5.5" step="0.5">
                                     </div>
                                     <div class="toggle-item">
                                         <div class="toggle-info">
                                             <span class="toggle-label">Anti-Price War Shield</span>
-                                            <span class="toggle-desc">Prevents race-to-bottom algorithms</span>
+                                            <span class="toggle-desc">Prevents margin race-to-the-bottom below cost thresholds</span>
                                         </div>
                                         <label class="toggle-switch">
                                             <input type="checkbox" id="antiPriceWarToggle" checked>
@@ -349,25 +493,61 @@
                             </div>
                         </div>
 
-                        <!-- Right: Results -->
+                        <!-- Right: Live AI Results & Rationale -->
                         <div class="simulator-right">
-                            <!-- Recommended Price Hero -->
+                            <!-- Recommended Price Hero Card -->
                             <div class="card rec-price-card">
                                 <div class="rec-price-header">
                                     <div class="rec-telemetry-label">
                                         <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
-                                        <span>AI Pricing Telemetry</span>
+                                        <span>LightGBM Model Inference</span>
                                     </div>
                                     <button class="rec-apply-btn" id="simApplyBtn">
-                                        Apply to Live Store
+                                        <span>Apply Recommendation</span>
                                         <span class="material-symbols-outlined">rocket_launch</span>
                                     </button>
                                 </div>
-                                <div class="rec-price-hero-label">Recommended Price</div>
+                                <div class="rec-price-hero-label" id="simProductHeroTitle">Target Recommendation</div>
                                 <div class="rec-price-hero">
                                     <span class="rec-price-currency">₹</span>
-                                    <span class="rec-price-amount" id="simRecPrice">1,249</span>
-                                    <span class="rec-price-margin-pill" id="simMarginPill">+13.6% Margin</span>
+                                    <span class="rec-price-amount" id="simRecPrice">39,999</span>
+                                    <span class="rec-price-margin-pill" id="simMarginPill">+12.4% Margin</span>
+                                </div>
+                                <div class="rec-price-sub-row">
+                                    <div class="rec-sub-item">
+                                        <span class="rec-sub-label">Current Active:</span>
+                                        <span class="rec-sub-val" id="simCurrentPriceDisplay">₹39,999</span>
+                                    </div>
+                                    <div class="rec-sub-item">
+                                        <span class="rec-sub-label">Price Adjustment:</span>
+                                        <span class="rec-sub-val" id="simPriceDeltaDisplay">₹0.00 (0.0%)</span>
+                                    </div>
+                                    <div class="rec-sub-item">
+                                        <span class="rec-sub-label">Action:</span>
+                                        <span class="rec-action-badge" id="simActionBadge">Hold Price</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Guardrails & Elasticity Status Bar -->
+                            <div class="card guardrail-status-card">
+                                <div class="guardrail-grid">
+                                    <div class="guardrail-item">
+                                        <span class="guardrail-label">Margin Floor (Min)</span>
+                                        <span class="guardrail-val" id="simFloorPrice">₹33,760</span>
+                                    </div>
+                                    <div class="guardrail-item">
+                                        <span class="guardrail-label">Ceiling (MRP/1.25x)</span>
+                                        <span class="guardrail-val" id="simCeilPrice">₹48,298</span>
+                                    </div>
+                                    <div class="guardrail-item">
+                                        <span class="guardrail-label">Guardrail Compliance</span>
+                                        <span class="guardrail-badge badge-pass" id="simGuardrailStatus">Verified Pass</span>
+                                    </div>
+                                    <div class="guardrail-item">
+                                        <span class="guardrail-label">Elasticity Class</span>
+                                        <span class="guardrail-val" id="simElasticityScore">Inelastic (-1.10)</span>
+                                    </div>
                                 </div>
                             </div>
 
@@ -375,19 +555,31 @@
                             <div class="impact-metrics-grid">
                                 <div class="impact-metric card">
                                     <div class="impact-metric-label">Proj. Volume (30D)</div>
-                                    <div class="impact-metric-value" id="simVolume">1,420</div>
-                                    <div class="impact-metric-sub kpi-sub-emerald" id="simVolumeSub">↑ 28% vs baseline</div>
+                                    <div class="impact-metric-value" id="simVolume">840</div>
+                                    <div class="impact-metric-sub kpi-sub-emerald" id="simVolumeSub">↑ 18% vs baseline</div>
                                 </div>
                                 <div class="impact-metric card">
                                     <div class="impact-metric-label">Proj. Revenue</div>
-                                    <div class="impact-metric-value" id="simRevenue">₹1.77M</div>
-                                    <div class="impact-metric-sub kpi-sub-emerald" id="simRevenueSub">↑ 19.4% vs baseline</div>
+                                    <div class="impact-metric-value" id="simRevenue">₹3.36M</div>
+                                    <div class="impact-metric-sub kpi-sub-emerald" id="simRevenueSub">↑ 14.2% vs baseline</div>
                                 </div>
                                 <div class="impact-metric card">
-                                    <div class="impact-metric-label">Profit Margin</div>
-                                    <div class="impact-metric-value" id="simMargin">32.4%</div>
-                                    <div class="impact-metric-sub kpi-sub-emerald" id="simMarginSub">↑ 5.8 pt lift</div>
+                                    <div class="impact-metric-label">Gross Margin</div>
+                                    <div class="impact-metric-value" id="simMargin">20.0%</div>
+                                    <div class="impact-metric-sub kpi-sub-emerald" id="simMarginSub">↑ +4.2 pt lift</div>
                                 </div>
+                            </div>
+
+                            <!-- AI Merchandising Insights Box -->
+                            <div class="card sim-insights-card">
+                                <div class="sim-insights-header">
+                                    <span class="material-symbols-outlined" style="color:var(--brand-primary);font-size:18px;">psychology</span>
+                                    <h4 class="sim-insights-title">AI Decision Rationale & Economic Drivers</h4>
+                                </div>
+                                <ul class="sim-insights-list" id="simInsightsList">
+                                    <li>Recommended price optimizes gross margin while maintaining competitive market elasticity.</li>
+                                    <li>Pricing strictly satisfies guaranteed profit floor (>= Cost Price * 1.055).</li>
+                                </ul>
                             </div>
 
                             <!-- Profit Topology Curve -->
@@ -395,7 +587,7 @@
                                 <div class="topology-header">
                                     <h3 class="topology-title">Profit Topology Curve</h3>
                                     <div class="chart-legend">
-                                        <div class="legend-item"><span class="legend-dot legend-dot-blue"></span> Sweet Spot</div>
+                                        <div class="legend-item"><span class="legend-dot legend-dot-blue"></span> Optimal Point</div>
                                     </div>
                                 </div>
                                 <div class="chart-canvas-wrap">
@@ -411,8 +603,11 @@
                      ══════════════════════════════════════════════════════════ -->
                 <section class="view-container" id="viewQueue">
                     <div class="page-title-section">
-                        <h1 class="page-title">Action Queue</h1>
-                        <p class="page-subtitle">Dynamic price adjustment recommendations pending approval</p>
+                        <div class="title-with-pill">
+                            <h1 class="page-title">Reprice Action Queue</h1>
+                            <span class="city-badge-indicator" id="queueCityBadge">Ahmedabad</span>
+                        </div>
+                        <p class="page-subtitle">Dynamic price adjustments calculated by LightGBM model awaiting operator approval.</p>
                     </div>
 
                     <!-- Action Bar -->
@@ -428,10 +623,15 @@
                             </label>
                         </div>
                         <div class="queue-filter-chips">
-                            <button class="filter-chip active" data-filter="all">All Categories</button>
-                            <button class="filter-chip" data-filter="Fashion">Fashion</button>
+                            <button class="filter-chip active" data-filter="all">All (8 Cats)</button>
                             <button class="filter-chip" data-filter="Electronics">Electronics</button>
+                            <button class="filter-chip" data-filter="Fashion">Fashion</button>
                             <button class="filter-chip" data-filter="Grocery">Grocery</button>
+                            <button class="filter-chip" data-filter="Home & Kitchen">Home</button>
+                            <button class="filter-chip" data-filter="Personal Care">Personal</button>
+                            <button class="filter-chip" data-filter="Mobile Accessories">Mobile Acc</button>
+                            <button class="filter-chip" data-filter="Footwear">Footwear</button>
+                            <button class="filter-chip" data-filter="Sports & Fitness">Sports</button>
                         </div>
                         <div class="queue-action-btns">
                             <button class="queue-reject-btn" id="queueRejectAllBtn">Reject All</button>
@@ -441,42 +641,40 @@
 
                     <!-- Queue Table -->
                     <div class="card queue-table-card">
-                        <table class="queue-table">
-                            <thead>
-                                <tr>
-                                    <th style="width:32px;"><input type="checkbox" class="queue-checkbox" id="queueSelectAll"></th>
-                                    <th>SKU / Item</th>
-                                    <th>Runway</th>
-                                    <th>Cost / Floor</th>
-                                    <th>Market Avg</th>
-                                    <th>AI Rec Price</th>
-                                    <th>Proj. Lift</th>
-                                    <th>Confidence</th>
-                                    <th></th>
-                                </tr>
-                            </thead>
-                            <tbody id="queueTableBody">
-                                <!-- Populated by JS -->
-                            </tbody>
-                        </table>
+                        <div class="table-responsive-wrapper">
+                            <table class="queue-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width:36px;"><input type="checkbox" class="queue-checkbox" id="queueSelectAll"></th>
+                                        <th>SKU / Item</th>
+                                        <th>Category</th>
+                                        <th>Runway</th>
+                                        <th>Cost / Floor</th>
+                                        <th>Market Avg</th>
+                                        <th>AI Rec Price</th>
+                                        <th>Proj. Lift</th>
+                                        <th>Confidence</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="queueTableBody">
+                                    <!-- Populated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </section>
 
                 <!-- ══════════════════════════════════════════════════════════
-                     VIEW 4: COMPETITOR RADAR
+                     VIEW 4: COMPETITOR RADAR & HYPERLOCAL MAP
                      ══════════════════════════════════════════════════════════ -->
                 <section class="view-container" id="viewRadar">
                     <div class="page-title-section">
-                        <h1 class="page-title">Competitor Surveillance</h1>
-                        <p class="page-subtitle">Real-time <span class="page-subtitle-highlight">Hyperlocal Radar</span> & Scraping Intelligence</p>
-                    </div>
-
-                    <!-- Live Ticker Active Badge -->
-                    <div style="display:flex;justify-content:flex-end;margin-bottom:1rem;">
-                        <div class="live-ticker-pill">
-                            <span class="live-dot"></span>
-                            <span>Live Ticker Active</span>
+                        <div class="title-with-pill">
+                            <h1 class="page-title">Competitor Surveillance & Radar</h1>
+                            <span class="city-badge-indicator" id="radarCityBadge">Ahmedabad & Surat</span>
                         </div>
+                        <p class="page-subtitle">Real-time Hyperlocal Radar & Scraping Intelligence across Gujarat core retail corridors.</p>
                     </div>
 
                     <!-- Competitor Summary Cards -->
@@ -485,39 +683,35 @@
                             <div class="competitor-card-header">
                                 <div>
                                     <div class="competitor-name">DMart Gujarat</div>
-                                    <div class="competitor-type">B2C Bulk Retail</div>
+                                    <div class="competitor-type">Bulk Offline & Online Retail</div>
                                 </div>
                                 <div class="competitor-icon">
                                     <span class="material-symbols-outlined">store</span>
                                 </div>
                             </div>
                             <div class="competitor-stats">
-                                <div>
-                                    <div class="competitor-stat-value">1,462</div>
-                                </div>
-                                <span class="competitor-stat-pill stat-pill-red">-1.2% 1dx</span>
+                                <div class="competitor-stat-value" id="radarStatDmart">1,462 SKUs</div>
+                                <span class="competitor-stat-pill stat-pill-red">-1.2% Price Gap</span>
                             </div>
                             <div class="competitor-coverage">
-                                <span class="coverage-label">Scrape Coverage: 85%</span>
-                                <div class="coverage-bar"><div class="coverage-fill" style="width:85%;"></div></div>
+                                <span class="coverage-label">Scrape Coverage: 94%</span>
+                                <div class="coverage-bar"><div class="coverage-fill" style="width:94%;"></div></div>
                             </div>
                         </div>
 
                         <div class="card competitor-card">
                             <div class="competitor-card-header">
                                 <div>
-                                    <div class="competitor-name">Reliance Smart</div>
-                                    <div class="competitor-type">Omnichannel Grocery</div>
+                                    <div class="competitor-name">Reliance Smart / JioMart</div>
+                                    <div class="competitor-type">Omnichannel Retail Hub</div>
                                 </div>
                                 <div class="competitor-icon">
                                     <span class="material-symbols-outlined">storefront</span>
                                 </div>
                             </div>
                             <div class="competitor-stats">
-                                <div>
-                                    <div class="competitor-stat-value">3,890</div>
-                                </div>
-                                <span class="competitor-stat-pill stat-pill-green">+2.4% 1dx</span>
+                                <div class="competitor-stat-value" id="radarStatReliance">3,890 SKUs</div>
+                                <span class="competitor-stat-pill stat-pill-green">+2.4% Margin Gap</span>
                             </div>
                             <div class="competitor-coverage">
                                 <span class="coverage-label">Scrape Coverage: 92%</span>
@@ -528,47 +722,56 @@
                         <div class="card competitor-card">
                             <div class="competitor-card-header">
                                 <div>
-                                    <div class="competitor-name">Blinkit / Zepto</div>
-                                    <div class="competitor-type">Quick Commerce Q10</div>
+                                    <div class="competitor-name">Blinkit / Zepto / Instamart</div>
+                                    <div class="competitor-type">Quick Commerce 10-Min Hubs</div>
                                 </div>
                                 <div class="competitor-icon">
                                     <span class="material-symbols-outlined">local_shipping</span>
                                 </div>
                             </div>
                             <div class="competitor-stats">
-                                <div>
-                                    <div class="competitor-stat-value">854</div>
-                                </div>
-                                <span class="competitor-stat-pill stat-pill-amber">Matches</span>
+                                <div class="competitor-stat-value" id="radarStatQcom">854 Dark Stores</div>
+                                <span class="competitor-stat-pill stat-pill-amber">Volatile Pricing</span>
                             </div>
                             <div class="competitor-coverage">
                                 <span class="coverage-label">Avg Scrape Latency: 142ms</span>
-                                <div class="coverage-bar"><div class="coverage-fill" style="width:68%;background:var(--amber);"></div></div>
+                                <div class="coverage-bar"><div class="coverage-fill" style="width:85%;background:var(--amber);"></div></div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Bottom: Heatmap + Ticker -->
+                    <!-- Bottom: Interactive Radar Map + Ticker -->
                     <div class="competitor-bottom-grid">
-                        <!-- Heatmap -->
+                        <!-- Hyperlocal Radar Map -->
                         <div class="card heatmap-card">
                             <div class="heatmap-header">
-                                <h2 class="heatmap-title">Hyperlocal Heatmap: Gujarat Core</h2>
+                                <div>
+                                    <h2 class="heatmap-title">Hyperlocal Pricing Radar & Retail Corridors</h2>
+                                    <p class="heatmap-sub" id="radarMapSub">Interactive neighborhood price pressure map</p>
+                                </div>
                                 <div class="heatmap-tabs">
-                                    <button class="heatmap-tab active" data-map="ahmedabad">Ahmedabad</button>
-                                    <button class="heatmap-tab" data-map="surat">Surat</button>
+                                    <button class="heatmap-tab active" data-map="Ahmedabad" id="tabRadarAhmedabad">Ahmedabad</button>
+                                    <button class="heatmap-tab" data-map="Surat" id="tabRadarSurat">Surat</button>
                                 </div>
                             </div>
-                            <div class="heatmap-placeholder">
+
+                            <!-- Map Canvas Container -->
+                            <div class="radar-canvas-container">
                                 <canvas id="heatmapCanvas" class="heatmap-canvas"></canvas>
+                                <div class="radar-crosshair"></div>
                                 <div class="heatmap-legend">
-                                    <span class="heatmap-legend-title">Price Intensity</span>
+                                    <span class="heatmap-legend-title">Price Pressure</span>
                                     <div class="heatmap-gradient"></div>
                                     <div class="heatmap-scale">
-                                        <span>Low</span>
-                                        <span>High</span>
+                                        <span>Competitive (Low)</span>
+                                        <span>Premium (High)</span>
                                     </div>
                                 </div>
+                            </div>
+
+                            <!-- Interactive Zone Breakdown Cards -->
+                            <div class="radar-zone-cards-grid" id="radarZoneCards">
+                                <!-- Populated dynamically by JS for Ahmedabad/Surat -->
                             </div>
                         </div>
 
@@ -576,8 +779,12 @@
                         <div class="card scrape-ticker-card">
                             <div class="ticker-header">
                                 <div>
-                                    <h2 class="ticker-title">Live Scrape Ticker</h2>
-                                    <p class="ticker-subtitle">Streaming real-time pricing events</p>
+                                    <h2 class="ticker-title">Live Competitor Price Stream</h2>
+                                    <p class="ticker-subtitle">Real-time web scraper event updates</p>
+                                </div>
+                                <div class="live-ticker-pill">
+                                    <span class="live-dot"></span>
+                                    <span>Scraper Active</span>
                                 </div>
                             </div>
                             <div class="ticker-list" id="tickerList">
@@ -592,8 +799,11 @@
                      ══════════════════════════════════════════════════════════ -->
                 <section class="view-container" id="viewAnalytics">
                     <div class="page-title-section">
-                        <h1 class="page-title">Revenue Intelligence & Margin Analytics</h1>
-                        <p class="page-subtitle">Executive summary of pricing impact across all active markets.</p>
+                        <div class="title-with-pill">
+                            <h1 class="page-title">Revenue Intelligence & Margin Analytics</h1>
+                            <span class="city-badge-indicator" id="analyticsCityBadge">All Gujarat</span>
+                        </div>
+                        <p class="page-subtitle">Historical and projected financial impact across all 8 retail product categories.</p>
                     </div>
 
                     <!-- Analytics KPIs -->
@@ -608,7 +818,7 @@
                             <div class="analytics-kpi-value">₹18.4<span class="analytics-kpi-unit">Lakhs</span></div>
                             <div class="analytics-kpi-sub kpi-sub-emerald">
                                 <span class="material-symbols-outlined" style="font-size:14px;">arrow_upward</span>
-                                <span>+12.4% vs last period</span>
+                                <span>+12.4% vs static pricing</span>
                             </div>
                         </div>
 
@@ -622,20 +832,20 @@
                             <div class="analytics-kpi-value">₹4.1<span class="analytics-kpi-unit">Lakhs</span></div>
                             <div class="analytics-kpi-sub kpi-sub-muted">
                                 <span class="material-symbols-outlined" style="font-size:14px;">verified</span>
-                                <span>Prevented erosion</span>
+                                <span>Zero price erosion</span>
                             </div>
                         </div>
 
                         <div class="analytics-kpi">
                             <div class="analytics-kpi-header">
-                                <span class="analytics-kpi-label">Prices Updated</span>
+                                <span class="analytics-kpi-label">SKUs Optimized</span>
                                 <div class="analytics-kpi-icon kpi-icon-blue">
                                     <span class="material-symbols-outlined">sync</span>
                                 </div>
                             </div>
-                            <div class="analytics-kpi-value">2,418<span class="analytics-kpi-unit">SKUs</span></div>
+                            <div class="analytics-kpi-value">130<span class="analytics-kpi-unit">SKUs</span></div>
                             <div class="analytics-kpi-sub kpi-sub-muted">
-                                <span>Avg. Latency: 42ms</span>
+                                <span>Across 8 Categories</span>
                             </div>
                         </div>
                     </div>
@@ -647,11 +857,11 @@
                             <div class="revenue-chart-header">
                                 <div>
                                     <h2 class="chart-title">Revenue Trajectory</h2>
-                                    <p style="font-size:0.75rem;color:var(--text-muted);margin-top:0.15rem;">Optimized Dynamic vs Fixed Baseline</p>
+                                    <p style="font-size:0.75rem;color:var(--text-muted);margin-top:0.15rem;">Dynamic LightGBM Optimized vs Static Baseline</p>
                                 </div>
                                 <div class="chart-legend">
-                                    <div class="legend-item"><span class="legend-dot legend-dot-blue"></span> Optimized</div>
-                                    <div class="legend-item"><span class="legend-dot" style="background:var(--border-default);"></span> Baseline</div>
+                                    <div class="legend-item"><span class="legend-dot legend-dot-blue"></span> Dynamic Price</div>
+                                    <div class="legend-item"><span class="legend-dot" style="background:var(--border-default);"></span> Static Baseline</div>
                                 </div>
                             </div>
                             <div class="chart-canvas-wrap" style="height:260px;">
@@ -662,29 +872,41 @@
                         <!-- Margin Contribution Treemap -->
                         <div class="card treemap-card">
                             <div class="treemap-header">
-                                <h2 class="treemap-title">Margin Contribution</h2>
-                                <p class="treemap-subtitle">Category analysis treemap</p>
+                                <h2 class="treemap-title">Category Margin Contribution</h2>
+                                <p class="treemap-subtitle">8 Dataset Categories in Gujarat</p>
                             </div>
                             <div class="treemap-grid">
                                 <div class="treemap-cell treemap-electronics">
                                     <div class="treemap-cell-name">Electronics</div>
-                                    <div class="treemap-cell-pct">42%</div>
+                                    <div class="treemap-cell-pct">36%</div>
                                 </div>
-                                <div class="treemap-cell treemap-apparel">
-                                    <div class="treemap-cell-name">Apparel</div>
-                                    <div class="treemap-cell-pct">28%</div>
+                                <div class="treemap-cell treemap-fashion">
+                                    <div class="treemap-cell-name">Fashion</div>
+                                    <div class="treemap-cell-pct">22%</div>
+                                </div>
+                                <div class="treemap-cell treemap-grocery">
+                                    <div class="treemap-cell-name">Grocery</div>
+                                    <div class="treemap-cell-pct">16%</div>
                                 </div>
                                 <div class="treemap-cell treemap-home">
-                                    <div class="treemap-cell-name">Home</div>
-                                    <div class="treemap-cell-pct">15%</div>
+                                    <div class="treemap-cell-name">Home & Kitchen</div>
+                                    <div class="treemap-cell-pct">12%</div>
                                 </div>
-                                <div class="treemap-cell treemap-fmcg">
-                                    <div class="treemap-cell-name">FMCG</div>
-                                    <div class="treemap-cell-pct">10%</div>
+                                <div class="treemap-cell treemap-personal">
+                                    <div class="treemap-cell-name">Personal Care</div>
+                                    <div class="treemap-cell-pct">6%</div>
                                 </div>
-                                <div class="treemap-cell treemap-other" style="grid-column: span 2;">
-                                    <div class="treemap-cell-name">Other</div>
-                                    <div class="treemap-cell-pct">5%</div>
+                                <div class="treemap-cell treemap-mobile">
+                                    <div class="treemap-cell-name">Mobile Acc.</div>
+                                    <div class="treemap-cell-pct">4%</div>
+                                </div>
+                                <div class="treemap-cell treemap-footwear">
+                                    <div class="treemap-cell-name">Footwear</div>
+                                    <div class="treemap-cell-pct">2%</div>
+                                </div>
+                                <div class="treemap-cell treemap-sports">
+                                    <div class="treemap-cell-name">Sports</div>
+                                    <div class="treemap-cell-pct">2%</div>
                                 </div>
                             </div>
                         </div>
@@ -696,17 +918,89 @@
                      ══════════════════════════════════════════════════════════ -->
                 <section class="view-container" id="viewRules">
                     <div class="page-title-section">
-                        <h1 class="page-title">Rule Engine & Guardrails</h1>
-                        <p class="page-subtitle">Configure automated pricing strategies and margin protection rules</p>
+                        <h1 class="page-title">Rule Engine & Guardrail Manager</h1>
+                        <p class="page-subtitle">Manage automated pricing boundaries, margin protection floors, and surge algorithms.</p>
                     </div>
 
-                    <div class="card">
-                        <div class="rules-placeholder">
-                            <div class="rules-icon-circle">
-                                <span class="material-symbols-outlined">tune</span>
+                    <div class="rules-grid">
+                        <div class="card rule-card">
+                            <div class="rule-card-header">
+                                <div class="rule-icon-wrap rule-icon-emerald">
+                                    <span class="material-symbols-outlined">shield</span>
+                                </div>
+                                <div class="rule-info">
+                                    <h3 class="rule-title">Guaranteed Margin Floor Shield</h3>
+                                    <p class="rule-desc">Hard barrier: Recommended Price $\ge \text{Cost Price} \times 1.055$ (5.5% minimum profit).</p>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" checked id="ruleToggleMarginFloor">
+                                    <span class="toggle-slider"></span>
+                                </label>
                             </div>
-                            <h3 class="rules-placeholder-title">Guardrail Configuration</h3>
-                            <p class="rules-placeholder-text">Automated pricing rules, margin floor protection, competitor matching strategies, and festival surge multipliers are managed through the backend configuration. Contact the data science team to customize.</p>
+                            <div class="rule-card-body">
+                                <div class="rule-badge badge-active">Active in Ahmedabad & Surat</div>
+                                <span class="rule-meta">Zero violations allowed. Overrides raw model if output < floor.</span>
+                            </div>
+                        </div>
+
+                        <div class="card rule-card">
+                            <div class="rule-card-header">
+                                <div class="rule-icon-wrap rule-icon-blue">
+                                    <span class="material-symbols-outlined">compare_arrows</span>
+                                </div>
+                                <div class="rule-info">
+                                    <h3 class="rule-title">Anti-Price War Corridor</h3>
+                                    <p class="rule-desc">Bounds pricing between $[0.75 \times \text{Comp Avg}, 1.25 \times \text{Comp Avg}]$ to stop race-to-bottom.</p>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" checked id="ruleToggleCorridor">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="rule-card-body">
+                                <div class="rule-badge badge-active">Active on all 130 SKUs</div>
+                                <span class="rule-meta">Prevents algorithms from decoupling from market consensus.</span>
+                            </div>
+                        </div>
+
+                        <div class="card rule-card">
+                            <div class="rule-card-header">
+                                <div class="rule-icon-wrap rule-icon-purple">
+                                    <span class="material-symbols-outlined">celebration</span>
+                                </div>
+                                <div class="rule-info">
+                                    <h3 class="rule-title">Regional Festival Surge Multiplier</h3>
+                                    <p class="rule-desc">Captures margin expansion during Navratri, Diwali, Uttarayan, and Rath Yatra.</p>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" checked id="ruleToggleFestival">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="rule-card-body">
+                                <div class="rule-badge badge-active">Tuned to Gujarat Calendar</div>
+                                <span class="rule-meta">Applies exponential demand curve multiplier up to +18%.</span>
+                            </div>
+                        </div>
+
+                        <div class="card rule-card">
+                            <div class="rule-card-header">
+                                <div class="rule-icon-wrap rule-icon-amber">
+                                    <span class="material-symbols-outlined">inventory_2</span>
+                                </div>
+                                <div class="rule-info">
+                                    <h3 class="rule-title">Stockout Scarcity Premium</h3>
+                                    <p class="rule-desc">Increases price by +4% to +12% when warehouse runway falls below 4 days.</p>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" checked id="ruleToggleStockout">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="rule-card-body">
+                                <div class="rule-badge badge-active">Warehouse WH-AMD & WH-SUR</div>
+                                <span class="rule-meta">Slows depletion velocity until replenishment purchase order arrives.</span>
+                            </div>
                         </div>
                     </div>
                 </section>
@@ -715,13 +1009,198 @@
 
             <!-- Footer -->
             <footer class="app-footer">
-                <p class="footer-copy">&copy; 2024 AuraPrice Engine. All rights reserved.</p>
+                <p class="footer-copy">&copy; 2026 AuraPrice Engine — Real-Time Dynamic Price Optimization for Gujarat.</p>
                 <div class="footer-links">
-                    <span class="footer-link">Privacy Policy</span>
-                    <span class="footer-link">Terms of Service</span>
-                    <span class="footer-link">System Status</span>
+                    <span class="footer-link" id="footerLinkSettings">Settings</span>
+                    <span class="footer-link" id="footerLinkDocs">Documentation</span>
+                    <span class="footer-link" id="footerLinkHealth">Engine Health</span>
                 </div>
             </footer>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         SETTINGS MODAL
+         ═══════════════════════════════════════════════════════════════════ -->
+    <div class="modal-backdrop" id="settingsModal" style="display: none;">
+        <div class="modal-card">
+            <div class="modal-header">
+                <div class="modal-title-group">
+                    <span class="material-symbols-outlined modal-header-icon">tune</span>
+                    <h3 class="modal-title">Engine Configuration & Guardrails</h3>
+                </div>
+                <button class="modal-close-btn" id="closeSettingsModal" aria-label="Close Settings">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-section">
+                    <h4 class="modal-section-title">Operational Margin Floors</h4>
+                    <div class="modal-control-row">
+                        <div class="control-label-group">
+                            <span class="control-label">Guaranteed Margin Floor (%)</span>
+                            <span class="control-desc">Minimum gross margin threshold enforced on all SKUs</span>
+                        </div>
+                        <div class="control-input-group">
+                            <input type="number" class="modal-input" id="settingMarginFloor" value="5.5" min="1" max="30" step="0.5">
+                            <span class="input-unit">%</span>
+                        </div>
+                    </div>
+                    <div class="modal-control-row">
+                        <div class="control-label-group">
+                            <span class="control-label">Maximum Discount from MRP (%)</span>
+                            <span class="control-desc">Maximum allowable price reduction off catalog list price</span>
+                        </div>
+                        <div class="control-input-group">
+                            <input type="number" class="modal-input" id="settingMaxDiscount" value="40" min="5" max="75">
+                            <span class="input-unit">%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-section">
+                    <h4 class="modal-section-title">Competitor Corridor Bounds</h4>
+                    <div class="modal-control-row">
+                        <div class="control-label-group">
+                            <span class="control-label">Under-Price Tolerance Minimum</span>
+                            <span class="control-desc">Lowest price relative to competitor average</span>
+                        </div>
+                        <div class="control-input-group">
+                            <input type="number" class="modal-input" id="settingCorridorMin" value="-15" min="-35" max="-5">
+                            <span class="input-unit">%</span>
+                        </div>
+                    </div>
+                    <div class="modal-control-row">
+                        <div class="control-label-group">
+                            <span class="control-label">Over-Price Premium Ceiling</span>
+                            <span class="control-desc">Highest price relative to competitor average</span>
+                        </div>
+                        <div class="control-input-group">
+                            <input type="number" class="modal-input" id="settingCorridorMax" value="10" min="5" max="35">
+                            <span class="input-unit">%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-section">
+                    <h4 class="modal-section-title">API & Inference Endpoints</h4>
+                    <div class="modal-control-row">
+                        <div class="control-label-group">
+                            <span class="control-label">API Gateway Host URL</span>
+                            <span class="control-desc">Base URL for FastAPI microservice</span>
+                        </div>
+                        <div class="control-input-group full-width-input">
+                            <input type="text" class="modal-input" id="settingApiBase" placeholder="http://127.0.0.1:8000" value="">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-modal-secondary" id="btnResetSettings">Reset to Defaults</button>
+                <button class="btn-modal-primary" id="btnSaveSettings">Save Guardrail Settings</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         SUPPORT & DIAGNOSTICS MODAL
+         ═══════════════════════════════════════════════════════════════════ -->
+    <div class="modal-backdrop" id="supportModal" style="display: none;">
+        <div class="modal-card modal-card-large">
+            <div class="modal-header">
+                <div class="modal-title-group">
+                    <span class="material-symbols-outlined modal-header-icon">info</span>
+                    <h3 class="modal-title">System Diagnostics & Model Telemetry</h3>
+                </div>
+                <button class="modal-close-btn" id="closeSupportModal" aria-label="Close Support">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="diagnostics-grid">
+                    <div class="diag-card">
+                        <span class="diag-label">Model Architecture</span>
+                        <span class="diag-val">LightGBM GBDT Regressor</span>
+                    </div>
+                    <div class="diag-card">
+                        <span class="diag-label">Engineered Features</span>
+                        <span class="diag-val">57 Input Features</span>
+                    </div>
+                    <div class="diag-card">
+                        <span class="diag-label">Test MAE</span>
+                        <span class="diag-val">₹14.05 Rupee Error</span>
+                    </div>
+                    <div class="diag-card">
+                        <span class="diag-label">Dynamic Markup R²</span>
+                        <span class="diag-val">0.9903 Scale-Invariant</span>
+                    </div>
+                    <div class="diag-card">
+                        <span class="diag-label">Coverage Hubs</span>
+                        <span class="diag-val">Ahmedabad & Surat</span>
+                    </div>
+                    <div class="diag-card">
+                        <span class="diag-label">Catalog Scale</span>
+                        <span class="diag-val">130 SKUs / 8 Categories</span>
+                    </div>
+                </div>
+
+                <div class="modal-section">
+                    <div class="section-header-with-btn">
+                        <h4 class="modal-section-title">Live API Latency Benchmark</h4>
+                        <button class="btn-benchmark" id="btnRunLatencyTest">
+                            <span class="material-symbols-outlined">speed</span>
+                            <span>Run Latency Test</span>
+                        </button>
+                    </div>
+                    <div class="latency-result-box" id="latencyResultBox">
+                        <div class="latency-pill">
+                            <span class="material-symbols-outlined" style="font-size:16px;">health_and_safety</span>
+                            <span>Health Check: <strong id="healthLatencyVal">-- ms</strong></span>
+                        </div>
+                        <div class="latency-pill">
+                            <span class="material-symbols-outlined" style="font-size:16px;">bolt</span>
+                            <span>Inference (/predict): <strong id="predictLatencyVal">-- ms</strong></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-section">
+                    <h4 class="modal-section-title">57 Feature Vector Schema</h4>
+                    <div class="feature-tags-grid">
+                        <span class="feat-tag feat-pricing">Cost_Price</span>
+                        <span class="feat-tag feat-pricing">Current_Price</span>
+                        <span class="feat-tag feat-pricing">MRP</span>
+                        <span class="feat-tag feat-pricing">Marketplace_Fee_Pct</span>
+                        <span class="feat-tag feat-pricing">Discount_Pct</span>
+                        <span class="feat-tag feat-pricing">Margin_Pct</span>
+                        <span class="feat-tag feat-pricing">Competitor_Avg_Price</span>
+                        <span class="feat-tag feat-pricing">Price_Gap_Pct</span>
+                        <span class="feat-tag feat-pricing">Price_to_Comp_Ratio</span>
+                        <span class="feat-tag feat-pricing">Market_Rank</span>
+                        <span class="feat-tag feat-inventory">Stock_Level</span>
+                        <span class="feat-tag feat-inventory">Reorder_Point</span>
+                        <span class="feat-tag feat-inventory">Stock_Days_Remaining</span>
+                        <span class="feat-tag feat-inventory">Stock_Out_Risk</span>
+                        <span class="feat-tag feat-macro">USD_INR</span>
+                        <span class="feat-tag feat-macro">Crude_Oil_Price_USD</span>
+                        <span class="feat-tag feat-macro">Gold_Price</span>
+                        <span class="feat-tag feat-macro">Inflation_Index</span>
+                        <span class="feat-tag feat-macro">Consumer_Confidence_Proxy</span>
+                        <span class="feat-tag feat-calendar">Days_Until_Next_Festival</span>
+                        <span class="feat-tag feat-calendar">Festival_Impact_Score</span>
+                        <span class="feat-tag feat-weather">Temperature</span>
+                        <span class="feat-tag feat-weather">Humidity</span>
+                        <span class="feat-tag feat-weather">Rainfall</span>
+                        <span class="feat-tag feat-weather">Weather_Impact_Score</span>
+                        <span class="feat-tag feat-funnel">Price_Elasticity_Score</span>
+                        <span class="feat-tag feat-funnel">Rolling_Avg_Price_30d</span>
+                        <span class="feat-tag feat-funnel">Demand_Momentum_7d</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-modal-primary" id="btnCloseSupport">Close Diagnostics</button>
+            </div>
         </div>
     </div>
 

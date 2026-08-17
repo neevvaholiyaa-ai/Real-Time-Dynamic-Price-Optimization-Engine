@@ -60,3 +60,37 @@ def test_predict_endpoint_invalid():
     }
     response = client.post("/predict", json=invalid_payload)
     assert response.status_code == 422
+
+def test_settings_endpoint():
+    response = client.get("/api/settings")
+    assert response.status_code == 200
+    data = response.json()
+    assert "supported_cities" in data
+    assert "margin_floor_pct" in data
+    assert "Ahmedabad" in data["supported_cities"]
+    assert "Surat" in data["supported_cities"]
+
+def test_categories_endpoint():
+    response = client.get("/api/categories")
+    assert response.status_code == 200
+    cats = response.json()
+    assert isinstance(cats, list)
+    assert len(cats) >= 8
+    assert "Electronics" in cats
+    assert "Grocery" in cats
+
+def test_catalog_endpoint():
+    response = client.get("/api/catalog")
+    assert response.status_code == 200
+    items = response.json()
+    assert isinstance(items, list)
+    assert len(items) == 130
+
+def test_catalog_filtered_endpoint():
+    response = client.get("/api/catalog?category=Electronics")
+    assert response.status_code == 200
+    items = response.json()
+    assert isinstance(items, list)
+    assert len(items) > 0
+    assert all(item.get("Category") == "Electronics" for item in items)
+

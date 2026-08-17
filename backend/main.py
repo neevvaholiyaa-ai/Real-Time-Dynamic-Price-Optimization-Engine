@@ -6,7 +6,7 @@ Production-ready for Render (Backend) and Vercel (Frontend).
 import os
 import sys
 from pathlib import Path
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, status
@@ -20,24 +20,39 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from src.predict import predict_optimal_price, get_model_bundle
+from src.product_catalog import build_product_catalog
 from backend.schemas import PricePredictionRequest, PricePredictionResponse
+
+# Cached product catalog
+_MASTER_CATALOG: List[Dict[str, Any]] = []
+
+def get_master_catalog() -> List[Dict[str, Any]]:
+    global _MASTER_CATALOG
+    if not _MASTER_CATALOG:
+        try:
+            _MASTER_CATALOG = build_product_catalog()
+        except Exception as e:
+            print(f"[Catalog Load Warning] {e}")
+    return _MASTER_CATALOG
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Pre-load model bundle into memory at server startup."""
+    """Pre-load model bundle and product catalog into memory at server startup."""
     try:
         bundle = get_model_bundle()
         feature_count = len(bundle.get("feature_columns", []))
         print(f"[FastAPI Startup] Model loaded successfully ({feature_count} features).")
+        catalog = get_master_catalog()
+        print(f"[FastAPI Startup] Master catalog loaded ({len(catalog)} SKUs across 8 categories).")
     except Exception as e:
-        print(f"[FastAPI Startup Error] Could not load model: {e}")
+        print(f"[FastAPI Startup Error] {e}")
     yield
 
 # Initialize FastAPI App
 app = FastAPI(
     title="Real-Time Dynamic Price Optimization Engine",
-    description="Dynamic pricing intelligence and gross margin optimization microservice.",
-    version="1.0.0",
+    description="Dynamic pricing intelligence and gross margin optimization microservice for Ahmedabad and Surat.",
+    version="2.0.0",
     lifespan=lifespan
 )
 
@@ -70,29 +85,85 @@ def health_check():
 
     return {
         "status": "healthy" if model_ready else "degraded",
-        "service": "Dynamic Price Optimization Engine",
-        "model_loaded": model_ready
+        "model_loaded": model_ready,
+        "supported_cities": ["Ahmedabad", "Surat"],
+        "supported_categories": [
+            "Electronics", "Fashion", "Footwear", "Grocery",
+            "Home & Kitchen", "Mobile Accessories", "Personal Care", "Sports & Fitness"
+        ],
+        "total_skus": len(get_master_catalog()),
+        "version": "2.0.0"
     }
 
+@app.get("/api/settings", tags=["System"])
+def get_system_settings():
+    """
+    Returns active pricing rules, guardrails, and model telemetry metadata.
+    """
+    return {
+        "supported_cities": ["Ahmedabad", "Surat"],
+        "margin_floor_pct": 5.5,
+        "competitor_corridor_min_pct": -15.0,
+        "competitor_corridor_max_pct": 10.0,
+        "max_discount_from_mrp_pct": 40.0,
+        "model_architecture": "LightGBM Gradient Boosted Decision Trees",
+        "feature_count": 57,
+        "training_timeframe": "Multi-year historical Gujarat retail transactions",
+        "auto_pilot_enabled": False
+    }
+
+@app.get("/api/categories", tags=["Catalog"])
+def get_categories():
+    """
+    Returns the list of 8 retail categories supported by the engine.
+    """
+    catalog = get_master_catalog()
+    cats = sorted(list(set(p.get("Category", "") for p in catalog if p.get("Category"))))
+    if not cats:
+        cats = [
+            "Electronics", "Fashion", "Footwear", "Grocery",
+            "Home & Kitchen", "Mobile Accessories", "Personal Care", "Sports & Fitness"
+        ]
+    return cats
+
+@app.get("/api/catalog", tags=["Catalog"])
+def get_full_catalog(category: Optional[str] = None):
+    """
+    Returns the master dataset of 130 SKUs, optionally filtered by category.
+    """
+    catalog = get_master_catalog()
+    if category and category.lower() != "all":
+        return [p for p in catalog if p.get("Category", "").lower() == category.lower()]
+    return catalog
+
 @app.post("/predict", response_model=PricePredictionResponse, tags=["Pricing"])
-def predict_price(payload: PricePredictionRequest):
+def predict_price(request: PricePredictionRequest):
     """
-    Computes optimal recommended price subject to real-time market context
-    and strict operational retail guardrails.
+    Real-Time Dynamic Price Optimization Endpoint.
     """
+    # Enforce strictly Ahmedabad & Surat
+    if request.city not in ["Ahmedabad", "Surat"]:
+        request.city = "Ahmedabad"
+
     try:
-        input_dict = payload.model_dump()
-        result = predict_optimal_price(input_dict)
-        return PricePredictionResponse(**result)
+        input_data = request.model_dump()
+        result = predict_optimal_price(input_data)
+        return result
     except ValueError as ve:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(ve))
-    except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Prediction error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(ve)
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Inference execution failed: {str(exc)}"
+        )
 
 @app.get("/api/catalog-samples", tags=["Catalog"])
 def get_catalog_samples():
     """
-    Provides curated product presets representing diverse e-commerce retail scenarios.
+    Provides curated product presets representing diverse e-commerce retail scenarios in Ahmedabad & Surat.
     """
     return [
         {
@@ -100,7 +171,7 @@ def get_catalog_samples():
             "name": "Festive Kurta",
             "subtitle": "Diwali demand spike",
             "icon": "celebration",
-            "product_id": "P001",
+            "product_id": "PROD-FASH-001",
             "product_name": "Handcrafted Bandhani Festive Kurta",
             "category": "Fashion",
             "city": "Ahmedabad",
@@ -119,7 +190,7 @@ def get_catalog_samples():
             "name": "Basmati Rice 5kg",
             "subtitle": "Steady grocery item",
             "icon": "inventory_2",
-            "product_id": "P002",
+            "product_id": "PROD-GROC-002",
             "product_name": "Royal Premium Basmati Rice 5kg",
             "category": "Grocery",
             "city": "Surat",
@@ -135,10 +206,10 @@ def get_catalog_samples():
         },
         {
             "id": "wireless-earbuds",
-            "name": "Wireless Earbuds",
-            "subtitle": "High competition",
+            "name": "Wireless Earbuds ANC",
+            "subtitle": "High competition audio",
             "icon": "headphones",
-            "product_id": "P003",
+            "product_id": "PROD-ELEC-003",
             "product_name": "True Wireless Noise Cancelling Earbuds",
             "category": "Electronics",
             "city": "Ahmedabad",
@@ -154,10 +225,10 @@ def get_catalog_samples():
         },
         {
             "id": "smart-watch",
-            "name": "Smart Watch",
-            "subtitle": "Competitive electronics",
+            "name": "Smart Fitness Watch",
+            "subtitle": "Wearables category",
             "icon": "watch",
-            "product_id": "P004",
+            "product_id": "PROD-ELEC-004",
             "product_name": "Smart Fitness Watch 1.83 inch",
             "category": "Electronics",
             "city": "Surat",
@@ -168,6 +239,25 @@ def get_catalog_samples():
             "stock_level": 600,
             "orders": 12,
             "days_until_next_festival": 45,
+            "weather_type": "Clear",
+            "competitor_stock_status": "In_Stock"
+        },
+        {
+            "id": "oneplus-phone",
+            "name": "OnePlus 12R 5G (Custom)",
+            "subtitle": "Premium smartphone",
+            "icon": "smartphone",
+            "product_id": "PROD-ELEC-005",
+            "product_name": "OnePlus 12R 5G 16GB/256GB",
+            "category": "Electronics",
+            "city": "Ahmedabad",
+            "cost_price": 32000.0,
+            "current_price": 39999.0,
+            "mrp": 45999.0,
+            "competitor_avg_price": 38990.0,
+            "stock_level": 45,
+            "orders": 28,
+            "days_until_next_festival": 14,
             "weather_type": "Clear",
             "competitor_stock_status": "In_Stock"
         }
