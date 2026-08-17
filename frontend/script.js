@@ -1,744 +1,836 @@
 /**
- * AuraPrice Engine — Master Application Controller
- * High-Performance Dynamic Pricing SPA with Ahmedabad & Surat Focus,
- * 8-Category 130-SKU Master Catalog, Custom Product Optimizer,
- * Hyperlocal Radar Canvas, and Live Diagnostics Modals.
+ * AuraPrice Dynamic Pricing & Margin Optimization Platform
+ * Single-Page Application Client Controller
+ * Version 3.0 (Multi-User, API-Driven, Microeconomic Simulation)
  */
 
 document.addEventListener("DOMContentLoaded", () => {
-
     // =========================================================================
-    // 1. STATE & GLOBAL CONFIGURATION
+    // 1. APPLICATION STATE
     // =========================================================================
-    let activeCity = "Ahmedabad";
-    let currentView = "overview";
-    let activeRadarMap = "Ahmedabad";
-    let activeSimMode = "catalog"; // 'catalog' or 'custom'
-    let currentCategory = "Electronics";
-    let currentProductIndex = 0;
-    let masterCatalog = [];
-
-    // Guardrail settings (persisted or defaults)
-    let engineSettings = {
-        marginFloor: parseFloat(localStorage.getItem("aura_margin_floor") || "5.5"),
-        corridorMin: parseFloat(localStorage.getItem("aura_corridor_min") || "-15.0"),
-        corridorMax: parseFloat(localStorage.getItem("aura_corridor_max") || "10.0"),
-        maxDiscount: parseFloat(localStorage.getItem("aura_max_discount") || "40.0"),
-        apiBase: localStorage.getItem("aura_api_base") || window.API_BASE_URL || ""
+    const appState = {
+        user: null,
+        activeView: "overview",
+        products: [],
+        activeProductId: null,
+        analyses: [],
+        latestAnalysis: null,
+        dashboardOverview: null,
+        actionQueue: [],
+        analyticsData: null,
+        settings: null,
+        queueFilterCategory: "all"
     };
 
-    const API_BASE = engineSettings.apiBase;
+    const API_BASE = "";
 
     // =========================================================================
     // 2. DOM ELEMENTS
     // =========================================================================
-    const sidebar = document.getElementById("appSidebar");
-    const sidebarOverlay = document.getElementById("sidebarOverlay");
-    const mobileMenuBtn = document.getElementById("mobileMenuBtn");
-    const sidebarCloseBtn = document.getElementById("sidebarCloseBtn");
-    const navItems = document.querySelectorAll(".nav-item[data-view]");
+    const authOverlay = document.getElementById("authOverlay");
+    const appShell = document.getElementById("appShell");
+    const tabAuthLogin = document.getElementById("tabAuthLogin");
+    const tabAuthRegister = document.getElementById("tabAuthRegister");
+    const loginForm = document.getElementById("loginForm");
+    const registerForm = document.getElementById("registerForm");
+    const loginError = document.getElementById("loginError");
+    const regError = document.getElementById("regError");
+
+    const sidebarUserName = document.getElementById("sidebarUserName");
+    const headerUserDisplayName = document.getElementById("headerUserDisplayName");
+    const headerStoreName = document.getElementById("headerStoreName");
+    const sidebarLogoutBtn = document.getElementById("sidebarLogoutBtn");
+
+    const navItems = document.querySelectorAll(".sidebar-nav .nav-item");
     const viewContainers = document.querySelectorAll(".view-container");
-    const citySwitcher = document.getElementById("citySwitcher");
-    const cityPills = document.querySelectorAll(".city-pill");
-    const toastEl = document.getElementById("toastNotification");
-    const toastMsg = document.getElementById("toastMessage");
 
     // Modals
     const settingsModal = document.getElementById("settingsModal");
     const supportModal = document.getElementById("supportModal");
+    const logSalesModal = document.getElementById("logSalesModal");
+    const toastNotification = document.getElementById("toastNotification");
+    const toastMessage = document.getElementById("toastMessage");
 
     // =========================================================================
-    // 3. TOAST NOTIFICATION UTILITY
+    // 3. UTILITY FUNCTIONS
     // =========================================================================
+    function formatINR(val) {
+        if (val === null || val === undefined || isNaN(val)) return "₹0.00";
+        return "₹" + Number(val).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function formatNumber(val) {
+        if (val === null || val === undefined || isNaN(val)) return "0";
+        return Number(val).toLocaleString("en-IN");
+    }
+
+    let toastTimer = null;
     function showToast(msg, isError = false) {
-        if (!toastEl || !toastMsg) return;
-        toastMsg.textContent = msg;
-        const icon = toastEl.querySelector(".toast-icon");
-        if (icon) {
-            icon.textContent = isError ? "error" : "task_alt";
-            icon.style.color = isError ? "var(--coral)" : "var(--emerald)";
+        if (!toastNotification || !toastMessage) return;
+        toastMessage.textContent = msg;
+        toastNotification.style.background = isError ? "var(--coral-bg)" : "var(--emerald-bg)";
+        toastNotification.style.color = isError ? "var(--coral-text)" : "var(--emerald-text)";
+        toastNotification.style.borderColor = isError ? "var(--coral-border)" : "var(--emerald-border)";
+        toastNotification.style.display = "flex";
+
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => {
+            toastNotification.style.display = "none";
+        }, 4000);
+    }
+
+    async function apiFetch(url, options = {}) {
+        options.credentials = "include"; // Always send HttpOnly cookie
+        if (options.body && typeof options.body === "object") {
+            options.headers = {
+                ...options.headers,
+                "Content-Type": "application/json"
+            };
+            options.body = JSON.stringify(options.body);
         }
-        toastEl.style.display = "flex";
-        clearTimeout(showToast._timer);
-        showToast._timer = setTimeout(() => {
-            toastEl.style.display = "none";
-        }, 3200);
-    }
-
-    const formatINR = (val) => {
-        if (isNaN(val)) return "₹0";
-        return new Intl.NumberFormat("en-IN", {
-            style: "currency",
-            currency: "INR",
-            maximumFractionDigits: 2
-        }).format(val);
-    };
-
-    const formatNum = (val) => {
-        if (isNaN(val)) return "0";
-        return Math.round(val).toLocaleString("en-IN");
-    };
-
-    // =========================================================================
-    // 4. SPA ROUTER — VIEW SWITCHING
-    // =========================================================================
-    function switchView(viewName) {
-        currentView = viewName;
-        viewContainers.forEach(v => v.classList.remove("active"));
-        navItems.forEach(n => n.classList.remove("active"));
-
-        const target = document.getElementById("view" + capitalize(viewName));
-        const nav = document.querySelector(`.nav-item[data-view="${viewName}"]`);
-        if (target) target.classList.add("active");
-        if (nav) nav.classList.add("active");
-
-        // Close mobile drawer
-        if (sidebar) sidebar.classList.remove("open");
-        if (sidebarOverlay) sidebarOverlay.classList.remove("active");
-
-        // Lazy initialize view components
-        if (viewName === "overview") initOverview();
-        if (viewName === "simulator") initSimulator();
-        if (viewName === "queue") initQueue();
-        if (viewName === "radar") initRadar();
-        if (viewName === "analytics") initAnalytics();
-        if (viewName === "rules") initRules();
-    }
-
-    function capitalize(s) {
-        return s.charAt(0).toUpperCase() + s.slice(1);
-    }
-
-    navItems.forEach(btn => {
-        btn.addEventListener("click", () => switchView(btn.dataset.view));
-    });
-
-    // Mobile sidebar toggle
-    if (mobileMenuBtn) {
-        mobileMenuBtn.addEventListener("click", () => {
-            sidebar.classList.add("open");
-            sidebarOverlay.classList.add("active");
-        });
-    }
-
-    if (sidebarCloseBtn) {
-        sidebarCloseBtn.addEventListener("click", () => {
-            sidebar.classList.remove("open");
-            sidebarOverlay.classList.remove("active");
-        });
-    }
-
-    if (sidebarOverlay) {
-        sidebarOverlay.addEventListener("click", () => {
-            sidebar.classList.remove("open");
-            sidebarOverlay.classList.remove("active");
-        });
-    }
-
-    // =========================================================================
-    // 5. CITY SWITCHER (Strictly Ahmedabad & Surat)
-    // =========================================================================
-    function setActiveCity(cityName) {
-        activeCity = cityName;
-        cityPills.forEach(p => {
-            p.classList.toggle("active", p.dataset.city === cityName);
-        });
-
-        // Update labels across all views
-        const label = document.getElementById("overviewCityLabel");
-        if (label) label.textContent = activeCity + " Region";
-
-        const badge = document.getElementById("overviewCityBadge");
-        if (badge) badge.textContent = activeCity + " Hub";
-
-        const qBadge = document.getElementById("queueCityBadge");
-        if (qBadge) qBadge.textContent = activeCity;
-
-        const customCitySelect = document.getElementById("customCity");
-        if (customCitySelect) customCitySelect.value = activeCity;
-
-        // Synchronize Radar map if matches
-        activeRadarMap = activeCity;
-        updateRadarCityTabs();
-
-        // Refresh views
-        updateOverviewKPIs();
-        buildUrgentQueue();
-        if (currentView === "simulator") runActiveSimulation();
-        if (currentView === "radar") renderRadarMap();
-
-        showToast(`Switched active fulfillment hub to ${activeCity}`);
-    }
-
-    cityPills.forEach(pill => {
-        pill.addEventListener("click", () => {
-            setActiveCity(pill.dataset.city);
-        });
-    });
-
-    // =========================================================================
-    // 6. MASTER PRODUCT CATALOG & 8 CATEGORIES
-    // =========================================================================
-    const DEFAULT_CATALOG = [
-        // Electronics
-        { Product_ID: "PROD-ELEC-001", Product_Name: "Wireless Noise Cancelling Headphones Pro", Category: "Electronics", Base_MRP: 4999, Cost_Price: 2500, Min_Allowed_Price: 2637.5, Max_Allowed_Price: 5248.95, Base_Stock_Level: 180, Lead_Time_Days: 7 },
-        { Product_ID: "PROD-ELEC-002", Product_Name: "Portable Bluetooth Speaker 20W", Category: "Electronics", Base_MRP: 2499, Cost_Price: 1374, Min_Allowed_Price: 1499.4, Max_Allowed_Price: 2623.95, Base_Stock_Level: 220, Lead_Time_Days: 6 },
-        { Product_ID: "PROD-ELEC-003", Product_Name: "True Wireless Earbuds with ANC", Category: "Electronics", Base_MRP: 2999, Cost_Price: 1500, Min_Allowed_Price: 1799.4, Max_Allowed_Price: 3148.95, Base_Stock_Level: 300, Lead_Time_Days: 5 },
-        { Product_ID: "PROD-ELEC-004", Product_Name: "Smart Fitness Watch 1.83 inch", Category: "Electronics", Base_MRP: 3499, Cost_Price: 1680, Min_Allowed_Price: 2099.4, Max_Allowed_Price: 3673.95, Base_Stock_Level: 250, Lead_Time_Days: 7 },
-        { Product_ID: "PROD-ELEC-005", Product_Name: "GPS Smartwatch with AMOLED Display", Category: "Electronics", Base_MRP: 7999, Cost_Price: 4320, Min_Allowed_Price: 4799.4, Max_Allowed_Price: 8398.95, Base_Stock_Level: 120, Lead_Time_Days: 9 },
-        { Product_ID: "PROD-ELEC-006", Product_Name: "20000mAh 22.5W Fast Charging Power Bank", Category: "Electronics", Base_MRP: 1999, Cost_Price: 1160, Min_Allowed_Price: 1223.8, Max_Allowed_Price: 2098.95, Base_Stock_Level: 350, Lead_Time_Days: 5 },
-        { Product_ID: "PROD-ELEC-007", Product_Name: "RGB Mechanical Gaming Keyboard", Category: "Electronics", Base_MRP: 3999, Cost_Price: 2120, Min_Allowed_Price: 2399.4, Max_Allowed_Price: 4198.95, Base_Stock_Level: 140, Lead_Time_Days: 8 },
-        { Product_ID: "PROD-ELEC-008", Product_Name: "Dual Band Wi-Fi 6 Smart Router", Category: "Electronics", Base_MRP: 4499, Cost_Price: 2520, Min_Allowed_Price: 2699.4, Max_Allowed_Price: 4723.95, Base_Stock_Level: 130, Lead_Time_Days: 8 },
-        { Product_ID: "PROD-ELEC-009", Product_Name: "Soundbar with Subwoofer 120W", Category: "Electronics", Base_MRP: 8999, Cost_Price: 5220, Min_Allowed_Price: 5507.1, Max_Allowed_Price: 9448.95, Base_Stock_Level: 90, Lead_Time_Days: 10 },
-        // Grocery
-        { Product_ID: "PROD-GROC-001", Product_Name: "Royal Premium Basmati Rice 5kg", Category: "Grocery", Base_MRP: 750, Cost_Price: 570, Min_Allowed_Price: 601.35, Max_Allowed_Price: 787.5, Base_Stock_Level: 450, Lead_Time_Days: 3 },
-        { Product_ID: "PROD-GROC-002", Product_Name: "Refined Sunflower Cooking Oil 5L Can", Category: "Grocery", Base_MRP: 890, Cost_Price: 712, Min_Allowed_Price: 751.16, Max_Allowed_Price: 934.5, Base_Stock_Level: 400, Lead_Time_Days: 3 },
-        { Product_ID: "PROD-GROC-003", Product_Name: "Chakki Fresh Whole Wheat Atta 10kg", Category: "Grocery", Base_MRP: 480, Cost_Price: 374.4, Min_Allowed_Price: 395.0, Max_Allowed_Price: 504.0, Base_Stock_Level: 500, Lead_Time_Days: 2 },
-        { Product_ID: "PROD-GROC-004", Product_Name: "Pure Cow Ghee Bilona Method 1L", Category: "Grocery", Base_MRP: 950, Cost_Price: 684, Min_Allowed_Price: 721.62, Max_Allowed_Price: 997.5, Base_Stock_Level: 250, Lead_Time_Days: 4 },
-        { Product_ID: "PROD-GROC-005", Product_Name: "California Premium Almonds 1kg", Category: "Grocery", Base_MRP: 999, Cost_Price: 749, Min_Allowed_Price: 790.19, Max_Allowed_Price: 1048.95, Base_Stock_Level: 280, Lead_Time_Days: 4 },
-        { Product_ID: "PROD-GROC-006", Product_Name: "Crispy Methi Khakhra Box 500g", Category: "Grocery", Base_MRP: 160, Cost_Price: 96, Min_Allowed_Price: 101.28, Max_Allowed_Price: 168.0, Base_Stock_Level: 500, Lead_Time_Days: 2 },
-        // Fashion
-        { Product_ID: "PROD-FASH-001", Product_Name: "Handcrafted Bandhani Festive Kurta", Category: "Fashion", Base_MRP: 1299, Cost_Price: 494, Min_Allowed_Price: 779.4, Max_Allowed_Price: 1363.95, Base_Stock_Level: 280, Lead_Time_Days: 6 },
-        { Product_ID: "PROD-FASH-002", Product_Name: "Surat Art Silk Embroidered Saree", Category: "Fashion", Base_MRP: 2499, Cost_Price: 1050, Min_Allowed_Price: 1499.4, Max_Allowed_Price: 2623.95, Base_Stock_Level: 180, Lead_Time_Days: 8 },
-        { Product_ID: "PROD-FASH-003", Product_Name: "Navratri Special Chaniya Choli Set", Category: "Fashion", Base_MRP: 3999, Cost_Price: 1600, Min_Allowed_Price: 2399.4, Max_Allowed_Price: 4198.95, Base_Stock_Level: 150, Lead_Time_Days: 8 },
-        { Product_ID: "PROD-FASH-004", Product_Name: "Slim Fit Stretchable Denim Jeans", Category: "Fashion", Base_MRP: 1999, Cost_Price: 880, Min_Allowed_Price: 1199.4, Max_Allowed_Price: 2098.95, Base_Stock_Level: 220, Lead_Time_Days: 7 },
-        // Home & Kitchen
-        { Product_ID: "PROD-HOME-001", Product_Name: "Hard Anodised 3L Pressure Cooker", Category: "Home & Kitchen", Base_MRP: 1899, Cost_Price: 1025, Min_Allowed_Price: 1139.4, Max_Allowed_Price: 1993.95, Base_Stock_Level: 200, Lead_Time_Days: 6 },
-        { Product_ID: "PROD-HOME-002", Product_Name: "Heavy Duty 750W Mixer Grinder 3 Jars", Category: "Home & Kitchen", Base_MRP: 3499, Cost_Price: 2030, Min_Allowed_Price: 2141.65, Max_Allowed_Price: 3673.95, Base_Stock_Level: 130, Lead_Time_Days: 8 },
-        { Product_ID: "PROD-HOME-003", Product_Name: "1.8L Stainless Steel Electric Kettle", Category: "Home & Kitchen", Base_MRP: 1199, Cost_Price: 623, Min_Allowed_Price: 719.4, Max_Allowed_Price: 1258.95, Base_Stock_Level: 280, Lead_Time_Days: 5 },
-        // Personal Care
-        { Product_ID: "PROD-PERS-001", Product_Name: "Sunscreen Gel SPF 50 PA++++ 50g", Category: "Personal Care", Base_MRP: 599, Cost_Price: 264, Min_Allowed_Price: 359.4, Max_Allowed_Price: 628.95, Base_Stock_Level: 450, Lead_Time_Days: 4 },
-        { Product_ID: "PROD-PERS-002", Product_Name: "Cordless Waterproof Beard Trimmer", Category: "Personal Care", Base_MRP: 1499, Cost_Price: 780, Min_Allowed_Price: 899.4, Max_Allowed_Price: 1573.95, Base_Stock_Level: 200, Lead_Time_Days: 6 },
-        { Product_ID: "PROD-PERS-003", Product_Name: "Hyaluronic Acid Hydrating Face Serum 30ml", Category: "Personal Care", Base_MRP: 699, Cost_Price: 280, Min_Allowed_Price: 419.4, Max_Allowed_Price: 733.95, Base_Stock_Level: 300, Lead_Time_Days: 5 },
-        // Mobile Accessories
-        { Product_ID: "PROD-MOBI-001", Product_Name: "Braided 65W Type-C Fast Cable 2m", Category: "Mobile Accessories", Base_MRP: 499, Cost_Price: 160, Min_Allowed_Price: 299.4, Max_Allowed_Price: 523.95, Base_Stock_Level: 500, Lead_Time_Days: 4 },
-        { Product_ID: "PROD-MOBI-002", Product_Name: "Magnetic Car Phone Mount 360 Rotation", Category: "Mobile Accessories", Base_MRP: 699, Cost_Price: 245, Min_Allowed_Price: 419.4, Max_Allowed_Price: 733.95, Base_Stock_Level: 320, Lead_Time_Days: 5 },
-        // Footwear
-        { Product_ID: "PROD-FOOT-001", Product_Name: "Men Lightweight Running Shoes Mesh", Category: "Footwear", Base_MRP: 1999, Cost_Price: 760, Min_Allowed_Price: 1199.4, Max_Allowed_Price: 2098.95, Base_Stock_Level: 220, Lead_Time_Days: 7 },
-        { Product_ID: "PROD-FOOT-002", Product_Name: "Orthopedic Memory Foam Casual Slippers", Category: "Footwear", Base_MRP: 799, Cost_Price: 304, Min_Allowed_Price: 479.4, Max_Allowed_Price: 838.95, Base_Stock_Level: 350, Lead_Time_Days: 5 },
-        // Sports & Fitness
-        { Product_ID: "PROD-SPOR-001", Product_Name: "Anti-Skid TPE Yoga Mat 6mm with Strap", Category: "Sports & Fitness", Base_MRP: 1299, Cost_Price: 520, Min_Allowed_Price: 779.4, Max_Allowed_Price: 1363.95, Base_Stock_Level: 240, Lead_Time_Days: 6 },
-        { Product_ID: "PROD-SPOR-002", Product_Name: "Adjustable Neoprene Knee Support Brace", Category: "Sports & Fitness", Base_MRP: 699, Cost_Price: 266, Min_Allowed_Price: 419.4, Max_Allowed_Price: 733.95, Base_Stock_Level: 310, Lead_Time_Days: 5 }
-    ];
-
-    async function loadProductCatalog() {
         try {
-            const resp = await fetch(`${API_BASE}/api/catalog`);
+            const resp = await fetch(url, options);
+            if (resp.status === 401) {
+                // Unauthorized session
+                appState.user = null;
+                showAuthScreen();
+                throw new Error("Session expired. Please log in.");
+            }
+            return resp;
+        } catch (err) {
+            console.error(`[API Error] ${url}:`, err);
+            throw err;
+        }
+    }
+
+    // =========================================================================
+    // 4. AUTHENTICATION CONTROLLER
+    // =========================================================================
+    function showAuthScreen() {
+        if (authOverlay) authOverlay.style.display = "flex";
+        if (appShell) appShell.style.display = "none";
+    }
+
+    function showAppScreen() {
+        if (authOverlay) authOverlay.style.display = "none";
+        if (appShell) appShell.style.display = "flex";
+        if (appState.user) {
+            const name = appState.user.display_name || appState.user.email.split("@")[0];
+            if (sidebarUserName) sidebarUserName.textContent = name;
+            if (headerUserDisplayName) headerUserDisplayName.textContent = name;
+            if (headerStoreName) headerStoreName.textContent = `${name} — Dynamic Pricing`;
+        }
+    }
+
+    async function checkAuthSession() {
+        try {
+            const resp = await fetch("/api/auth/me", { credentials: "include" });
             if (resp.ok) {
-                const data = await resp.json();
-                if (Array.isArray(data) && data.length > 0) {
-                    masterCatalog = data;
-                } else {
-                    masterCatalog = DEFAULT_CATALOG;
-                }
+                appState.user = await resp.json();
+                showAppScreen();
+                await initAppData();
             } else {
-                masterCatalog = DEFAULT_CATALOG;
+                showAuthScreen();
             }
         } catch {
-            masterCatalog = DEFAULT_CATALOG;
+            showAuthScreen();
         }
-        populateCategoryAndProducts();
     }
 
-    function populateCategoryAndProducts() {
-        const catSelect = document.getElementById("simCategorySelect");
-        if (!catSelect) return;
-
-        catSelect.addEventListener("change", () => {
-            currentCategory = catSelect.value;
-            populateProductsForCategory(currentCategory);
+    // Auth Tabs Switcher
+    if (tabAuthLogin && tabAuthRegister) {
+        tabAuthLogin.addEventListener("click", () => {
+            tabAuthLogin.classList.add("active");
+            tabAuthRegister.classList.remove("active");
+            if (loginForm) loginForm.style.display = "block";
+            if (registerForm) registerForm.style.display = "none";
+            if (loginError) loginError.style.display = "none";
         });
 
-        populateProductsForCategory(currentCategory);
+        tabAuthRegister.addEventListener("click", () => {
+            tabAuthRegister.classList.add("active");
+            tabAuthLogin.classList.remove("active");
+            if (loginForm) loginForm.style.display = "none";
+            if (registerForm) registerForm.style.display = "block";
+            if (regError) regError.style.display = "none";
+        });
     }
 
-    function populateProductsForCategory(catName) {
-        const prodSelect = document.getElementById("simProductSelect");
-        if (!prodSelect) return;
-        prodSelect.innerHTML = "";
+    // Login Form Submit
+    if (loginForm) {
+        loginForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const email = document.getElementById("loginEmail")?.value;
+            const password = document.getElementById("loginPassword")?.value;
+            if (loginError) loginError.style.display = "none";
 
-        const filtered = masterCatalog.filter(p => p.Category === catName || p.cat === catName);
-        const listToUse = filtered.length > 0 ? filtered : masterCatalog;
+            try {
+                const resp = await fetch("/api/auth/login", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ email, password }),
+                    credentials: "include"
+                });
 
-        listToUse.forEach((p, idx) => {
-            const opt = document.createElement("option");
-            opt.value = idx;
-            const name = p.Product_Name || p.name || `SKU #${idx + 1}`;
-            const mrp = p.Base_MRP || p.mrp || 1000;
-            opt.textContent = `${name} (MRP: ₹${mrp})`;
-            prodSelect.appendChild(opt);
+                if (resp.ok) {
+                    appState.user = await resp.json();
+                    showAppScreen();
+                    showToast(`Welcome back, ${appState.user.display_name}!`);
+                    await initAppData();
+                } else {
+                    const err = await resp.json();
+                    if (loginError) {
+                        loginError.textContent = err.detail || "Invalid email or password.";
+                        loginError.style.display = "block";
+                    }
+                }
+            } catch (err) {
+                if (loginError) {
+                    loginError.textContent = "Network error. Please ensure the backend server is running.";
+                    loginError.style.display = "block";
+                }
+            }
         });
+    }
 
-        currentProductIndex = 0;
-        prodSelect.value = "0";
-        syncSimulatorWithSelectedProduct();
+    // Register Form Submit
+    if (registerForm) {
+        registerForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const display_name = document.getElementById("regDisplayName")?.value;
+            const email = document.getElementById("regEmail")?.value;
+            const password = document.getElementById("regPassword")?.value;
+            if (regError) regError.style.display = "none";
+
+            try {
+                const resp = await fetch("/api/auth/register", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ display_name, email, password }),
+                    credentials: "include"
+                });
+
+                if (resp.ok) {
+                    appState.user = await resp.json();
+                    showAppScreen();
+                    showToast(`Account created! Welcome, ${appState.user.display_name}!`);
+                    await initAppData();
+                } else {
+                    const err = await resp.json();
+                    if (regError) {
+                        regError.textContent = err.detail || "Registration failed. Email may already be in use.";
+                        regError.style.display = "block";
+                    }
+                }
+            } catch (err) {
+                if (regError) {
+                    regError.textContent = "Network error. Please try again.";
+                    regError.style.display = "block";
+                }
+            }
+        });
+    }
+
+    // Logout Handler
+    if (sidebarLogoutBtn) {
+        sidebarLogoutBtn.addEventListener("click", async () => {
+            try {
+                await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
+            } catch {}
+            appState.user = null;
+            showAuthScreen();
+            showToast("Signed out successfully.");
+        });
     }
 
     // =========================================================================
-    // 7. VIEW 1: OVERVIEW TELEMETRY
+    // 5. DATA INITIALIZATION & VIEW NAVIGATION
     // =========================================================================
-    let overviewInitialized = false;
+    async function initAppData() {
+        await Promise.all([
+            loadProducts(),
+            loadDashboardOverview(),
+            loadActionQueue(),
+            loadAnalytics(),
+            loadSettings()
+        ]);
+        switchView(appState.activeView);
+    }
 
-    function initOverview() {
-        if (!overviewInitialized) {
-            updateOverviewKPIs();
-            renderProfitFrontierChart();
-            renderSignalsList();
-            buildUrgentQueue();
-            overviewInitialized = true;
+    function switchView(viewName) {
+        appState.activeView = viewName;
+
+        navItems.forEach(btn => {
+            btn.classList.toggle("active", btn.dataset.view === viewName);
+        });
+
+        viewContainers.forEach(container => {
+            const isMatch = container.id.toLowerCase() === `view${viewName}`.toLowerCase();
+            container.classList.toggle("active", isMatch);
+        });
+
+        // Trigger view-specific render
+        if (viewName === "overview") renderDashboard();
+        else if (viewName === "simulator") renderProductAnalyzer();
+        else if (viewName === "queue") renderActionQueue();
+        else if (viewName === "radar") renderCompetitorInsights();
+        else if (viewName === "analytics") renderRevenueAnalytics();
+        else if (viewName === "rules") renderPricingRules();
+
+        // Close sidebar on mobile after navigation
+        if (window.innerWidth <= 1024) closeMobileSidebar();
+    }
+
+    navItems.forEach(item => {
+        item.addEventListener("click", () => {
+            const view = item.dataset.view;
+            if (view) switchView(view);
+        });
+    });
+
+    // Mobile Sidebar controls
+    const mobileMenuBtn = document.getElementById("mobileMenuBtn");
+    const sidebarCloseBtn = document.getElementById("sidebarCloseBtn");
+    const sidebarOverlay = document.getElementById("sidebarOverlay");
+    const appSidebar = document.getElementById("appSidebar");
+
+    function openMobileSidebar() {
+        if (appSidebar) appSidebar.classList.add("mobile-open");
+        if (sidebarOverlay) sidebarOverlay.classList.add("active");
+    }
+
+    function closeMobileSidebar() {
+        if (appSidebar) appSidebar.classList.remove("mobile-open");
+        if (sidebarOverlay) sidebarOverlay.classList.remove("active");
+    }
+
+    if (mobileMenuBtn) mobileMenuBtn.addEventListener("click", openMobileSidebar);
+    if (sidebarCloseBtn) sidebarCloseBtn.addEventListener("click", closeMobileSidebar);
+    if (sidebarOverlay) sidebarOverlay.addEventListener("click", closeMobileSidebar);
+
+    // =========================================================================
+    // 6. VIEW 1: DASHBOARD
+    // =========================================================================
+    async function loadDashboardOverview() {
+        try {
+            const resp = await apiFetch("/api/dashboard/overview");
+            if (resp.ok) {
+                appState.dashboardOverview = await resp.json();
+            }
+        } catch (err) {
+            console.error("Failed to load dashboard overview:", err);
         }
     }
 
-    function updateOverviewKPIs() {
-        const isAhm = activeCity === "Ahmedabad";
-        const marginLift = document.getElementById("kpiMarginLift");
-        const elasticity = document.getElementById("kpiElasticity");
-        const elasticityDesc = document.getElementById("kpiElasticityDesc");
-        const dmart = document.getElementById("kpiDmart");
-        const reliance = document.getElementById("kpiReliance");
-        const runway = document.getElementById("kpiRunway");
+    function renderDashboard() {
+        const d = appState.dashboardOverview;
+        if (!d) return;
 
-        if (marginLift) marginLift.textContent = isAhm ? "+16.8%" : "+14.2%";
-        if (elasticity) elasticity.textContent = isAhm ? "-1.35" : "-1.18";
-        if (elasticityDesc) elasticityDesc.textContent = isAhm ? "Inelastic — High margin headroom" : "Elastic — Responsive demand";
-        if (dmart) dmart.textContent = isAhm ? "-2.4%" : "-3.1%";
-        if (reliance) reliance.textContent = isAhm ? "+1.8%" : "+0.9%";
-        if (runway) runway.innerHTML = isAhm ? `9 <span style="font-size:0.85rem;font-weight:600;color:var(--text-secondary);">Days</span>` : `14 <span style="font-size:0.85rem;font-weight:600;color:var(--text-secondary);">Days</span>`;
-    }
-
-    function renderProfitFrontierChart() {
-        const canvas = document.getElementById("profitChart");
-        if (!canvas) return;
-        const ctx = canvas.getContext("2d");
-        const w = (canvas.width = canvas.parentElement.clientWidth);
-        const h = (canvas.height = 240);
-
-        ctx.clearRect(0, 0, w, h);
-
-        // Background gridlines
-        ctx.strokeStyle = "#E2E8F0";
-        ctx.lineWidth = 1;
-        for (let y = 30; y < h - 20; y += 40) {
-            ctx.beginPath();
-            ctx.moveTo(30, y);
-            ctx.lineTo(w - 20, y);
-            ctx.stroke();
+        // KPI 1: Avg Margin Lift
+        const kpiMargin = document.getElementById("kpiMarginLift");
+        if (kpiMargin) {
+            kpiMargin.textContent = d.avg_margin_lift_pct !== null ? `${d.avg_margin_lift_pct >= 0 ? '+' : ''}${d.avg_margin_lift_pct.toFixed(1)}%` : "--";
         }
 
-        // Draw Demand Curve (Downward sloping)
-        ctx.strokeStyle = "#059669";
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.moveTo(40, 50);
-        ctx.bezierCurveTo(w * 0.35, 90, w * 0.65, 160, w - 30, 210);
-        ctx.stroke();
+        // KPI 2: Price Elasticity Index
+        const kpiElasticity = document.getElementById("kpiElasticity");
+        const kpiElasticityDesc = document.getElementById("kpiElasticityDesc");
+        if (kpiElasticity) {
+            kpiElasticity.textContent = d.price_elasticity_index !== null ? d.price_elasticity_index.toFixed(2) : "--";
+        }
+        if (kpiElasticityDesc) {
+            kpiElasticityDesc.textContent = d.price_elasticity_index !== null
+                ? (d.price_elasticity_index < -1.5 ? "Elastic — Sensitive Demand" : "Inelastic — Margin Room")
+                : "Insufficient data";
+        }
 
-        // Draw Profit Curve (Parabolic bell curve)
-        ctx.strokeStyle = "#2563EB";
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.moveTo(40, 200);
-        ctx.bezierCurveTo(w * 0.35, 40, w * 0.65, 40, w - 30, 190);
-        ctx.stroke();
+        // KPI 3: Competitor Gap
+        const kpiCompetitorGap = document.getElementById("kpiCompetitorGap");
+        const kpiCompetitorGapSub = document.getElementById("kpiCompetitorGapSub");
+        if (kpiCompetitorGap) {
+            kpiCompetitorGap.textContent = d.competitor_gap_avg_pct !== null ? `${d.competitor_gap_avg_pct > 0 ? '+' : ''}${d.competitor_gap_avg_pct.toFixed(1)}%` : "--";
+        }
+        if (kpiCompetitorGapSub) {
+            kpiCompetitorGapSub.textContent = d.competitor_status_label || "User-provided benchmark";
+        }
 
-        // Optimal Sweet Spot Point
-        const peakX = w * 0.5;
-        const peakY = 62;
-        ctx.fillStyle = "#2563EB";
-        ctx.beginPath();
-        ctx.arc(peakX, peakY, 6, 0, Math.PI * 2);
-        ctx.fill();
+        // KPI 4: Stock Runway
+        const kpiRunway = document.getElementById("kpiRunway");
+        const kpiRunwaySub = document.getElementById("kpiRunwaySub");
+        if (kpiRunway) {
+            kpiRunway.textContent = d.stock_runway_avg_days !== null ? `${Math.round(d.stock_runway_avg_days)} Days` : "--";
+        }
+        if (kpiRunwaySub) {
+            kpiRunwaySub.textContent = d.stock_status_label || "Inventory burn estimate";
+        }
 
-        ctx.strokeStyle = "#FFFFFF";
-        ctx.lineWidth = 2;
-        ctx.stroke();
+        // KPI 5: Products Analyzed
+        const kpiAnalyzed = document.getElementById("kpiProductsAnalyzed");
+        if (kpiAnalyzed) {
+            kpiAnalyzed.textContent = formatNumber(d.products_analyzed_count);
+        }
 
-        // Dotted line to axis
-        ctx.setLineDash([4, 4]);
-        ctx.strokeStyle = "rgba(37, 99, 235, 0.4)";
-        ctx.beginPath();
-        ctx.moveTo(peakX, peakY);
-        ctx.lineTo(peakX, h - 20);
-        ctx.stroke();
-        ctx.setLineDash([]);
+        // KPI 6: Projected Profit Opportunity
+        const kpiProfitOpp = document.getElementById("kpiProfitOpportunity");
+        if (kpiProfitOpp) {
+            kpiProfitOpp.textContent = d.projected_profit_opportunity_30d !== null ? formatINR(d.projected_profit_opportunity_30d) : "₹0.00";
+        }
+
+        renderDynamicSignals(d.signals || []);
+        renderUrgentQueueTable();
+        renderProfitFrontierChart();
     }
 
-    const allSignals = [
-        {
-            icon: "celebration", iconClass: "signal-icon-purple",
-            title: "Navratri Festive Demand Surge",
-            desc: "Fashion and dry fruits showing +38% willingness-to-pay across Gujarat.",
-            meta: "Active Multiplier: 1.25x"
-        },
-        {
-            icon: "warning", iconClass: "signal-icon-amber",
-            title: "Edible Oil Stock Velocity Spike",
-            desc: "Surat warehouse inventory runway decreased to 3.2 days. Scarcity premium applied.",
-            meta: "Stock Runway: 3.2d"
-        },
-        {
-            icon: "storefront", iconClass: "signal-icon-blue",
-            title: "DMart Retail Undercut Detected",
-            desc: "DMart Ahmedabad discounted 14 FMCG SKUs by 5.2%. Anti-price-war shield protecting margins.",
-            meta: "Corridor Protected"
-        },
-        {
-            icon: "show_chart", iconClass: "signal-icon-emerald",
-            title: "Electronics Price Inelasticity",
-            desc: "Smart watches and ANC headphones exhibiting -0.92 elasticity. Room for +8% margin lift.",
-            meta: "ML Confidence: 94%"
-        }
-    ];
-
-    function renderSignalsList() {
+    function renderDynamicSignals(signals) {
         const container = document.getElementById("signalList");
         if (!container) return;
         container.innerHTML = "";
 
-        allSignals.forEach(s => {
+        if (!signals || signals.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state-container" style="padding: 1.5rem 1rem;">
+                    <span class="material-symbols-outlined empty-state-icon" style="width:40px;height:40px;font-size:24px;">info</span>
+                    <div class="empty-state-title" style="font-size:0.95rem;">No Active Signals</div>
+                    <div class="empty-state-desc" style="font-size:0.8rem;">Add products and run analyses to generate dynamic pricing signals.</div>
+                </div>
+            `;
+            return;
+        }
+
+        signals.forEach(s => {
             const div = document.createElement("div");
             div.className = "signal-item";
             div.innerHTML = `
-                <div class="signal-icon-wrap ${s.iconClass}">
-                    <span class="material-symbols-outlined">${s.icon}</span>
+                <div class="signal-icon-wrap ${s.icon_class || 'signal-icon-blue'}">
+                    <span class="material-symbols-outlined">${s.icon || 'bolt'}</span>
                 </div>
                 <div class="signal-body">
                     <div class="signal-title">${s.title}</div>
                     <div class="signal-desc">${s.desc}</div>
-                    <div class="signal-meta">${s.meta}</div>
+                    <div class="signal-meta">${s.meta || ''}</div>
                 </div>
             `;
             container.appendChild(div);
         });
     }
 
-    function buildUrgentQueue() {
-        const body = document.getElementById("urgentTableBody");
-        if (!body) return;
-        body.innerHTML = "";
+    function renderUrgentQueueTable() {
+        const tbody = document.getElementById("urgentTableBody");
+        if (!tbody) return;
+        tbody.innerHTML = "";
 
-        const items = [
-            { name: "Royal Premium Basmati Rice 5kg", cat: "Grocery", curr: 640, rec: 685, impact: "+₹4,500/mo", up: true },
-            { name: "Wireless Noise Cancelling Headphones", cat: "Electronics", curr: 4200, rec: 4599, impact: "+₹18,200/mo", up: true },
-            { name: "Handcrafted Bandhani Festive Kurta", cat: "Fashion", curr: 1299, rec: 1449, impact: "+₹12,400/mo", up: true },
-            { name: "Hard Anodised 3L Pressure Cooker", cat: "Home & Kitchen", curr: 1650, rec: 1580, impact: "Velocity Lift", up: false },
-            { name: "Sunscreen Gel SPF 50 PA++++", cat: "Personal Care", curr: 520, rec: 569, impact: "+₹3,800/mo", up: true }
-        ];
+        const items = appState.actionQueue.slice(0, 5);
+        if (items.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" style="text-align:center;padding:2.5rem 1rem;color:var(--text-muted);">
+                        <span class="material-symbols-outlined" style="font-size:32px;display:block;margin-bottom:0.5rem;color:var(--text-muted);">task_alt</span>
+                        <strong>No Urgent Price Actions Pending</strong>
+                        <p style="font-size:0.8rem;margin-top:0.25rem;">All product prices are aligned with current guardrails.</p>
+                    </td>
+                </tr>
+            `;
+            return;
+        }
 
         items.forEach(item => {
             const tr = document.createElement("tr");
-            const color = item.up ? "price-up" : "price-down";
-            const arrow = item.up ? "↑" : "↓";
+            const isUp = item.price_change >= 0;
+            const colorClass = isUp ? "price-up" : "price-down";
+            const arrow = isUp ? "↑" : "↓";
+            const confClass = item.confidence_level === "high" ? "badge-high" : item.confidence_level === "medium" ? "badge-medium" : "badge-low";
+
             tr.innerHTML = `
                 <td>
-                    <span class="table-product-name">${item.name}</span>
-                    <span class="table-product-sku">Hub: ${activeCity}</span>
+                    <span class="table-product-name">${item.product_name}</span>
+                    <span class="table-product-sku">ID: ${item.product_id.slice(0, 8)}</span>
                 </td>
-                <td><span class="feat-tag feat-pricing">${item.cat}</span></td>
-                <td class="mono-num">₹${item.curr.toFixed(2)}</td>
-                <td class="mono-num ${color}" style="font-weight:700;">₹${item.rec.toFixed(2)} ${arrow}</td>
-                <td class="table-impact ${color}">${item.impact}</td>
+                <td><span class="feat-tag feat-pricing">${item.category}</span></td>
+                <td class="mono-num">${formatINR(item.current_price)}</td>
+                <td class="mono-num ${colorClass}" style="font-weight:700;">${formatINR(item.recommended_price)} ${arrow}</td>
+                <td class="table-impact ${colorClass}">+${item.margin_lift_pct.toFixed(1)}% Lift</td>
+                <td><span class="confidence-badge ${confClass}">${item.confidence_level.toUpperCase()}</span></td>
                 <td>
-                    <button class="table-approve-btn" onclick="this.textContent='Approved';this.disabled=true;this.style.background='var(--emerald-bg)';this.style.color='var(--emerald)';this.style.borderColor='var(--emerald-border)';">Approve</button>
+                    <button class="table-approve-btn" data-id="${item.analysis_id}">Approve</button>
                 </td>
             `;
-            body.appendChild(tr);
+
+            const btn = tr.querySelector(".table-approve-btn");
+            btn.addEventListener("click", () => applyRecommendation(item.analysis_id, btn));
+            tbody.appendChild(tr);
         });
     }
 
-    const approveAllBtn = document.getElementById("approveAllBtn");
-    if (approveAllBtn) {
-        approveAllBtn.addEventListener("click", () => {
-            const btns = document.querySelectorAll(".table-approve-btn");
-            btns.forEach(b => {
-                b.textContent = "Approved";
-                b.disabled = true;
-                b.style.background = "var(--emerald-bg)";
-                b.style.color = "var(--emerald)";
-                b.style.borderColor = "var(--emerald-border)";
-            });
-            showToast("Approved all 5 urgent dynamic price recommendations!");
+    const overviewApproveAllBtn = document.getElementById("overviewApproveAllBtn");
+    if (overviewApproveAllBtn) {
+        overviewApproveAllBtn.addEventListener("click", async () => {
+            const pending = appState.actionQueue;
+            if (pending.length === 0) {
+                showToast("No pending recommendations to approve.");
+                return;
+            }
+            let successCount = 0;
+            for (const item of pending) {
+                try {
+                    await apiFetch(`/api/analyses/${item.analysis_id}/apply`, { method: "PUT" });
+                    successCount++;
+                } catch {}
+            }
+            showToast(`Approved ${successCount} dynamic price recommendations!`);
+            await initAppData();
         });
     }
 
     // =========================================================================
-    // 8. VIEW 2: WHAT-IF SIMULATOR & CUSTOM PRICING ENGINE
+    // 7. VIEW 2: PRODUCT ANALYZER & SIMULATOR
     // =========================================================================
-    let simInitialized = false;
-
-    function initSimulator() {
-        if (simInitialized) return;
-        simInitialized = true;
-
-        // Mode Switcher Tabs
-        const tabCatalog = document.getElementById("tabCatalogMode");
-        const tabCustom = document.getElementById("tabCustomMode");
-        const panelCatalog = document.getElementById("catalogModePanel");
-        const panelCustom = document.getElementById("customModePanel");
-
-        if (tabCatalog && tabCustom) {
-            tabCatalog.addEventListener("click", () => {
-                activeSimMode = "catalog";
-                tabCatalog.classList.add("active");
-                tabCustom.classList.remove("active");
-                if (panelCatalog) panelCatalog.style.display = "block";
-                if (panelCustom) panelCustom.style.display = "none";
-                syncSimulatorWithSelectedProduct();
-            });
-
-            tabCustom.addEventListener("click", () => {
-                activeSimMode = "custom";
-                tabCustom.classList.add("active");
-                tabCatalog.classList.remove("active");
-                if (panelCatalog) panelCatalog.style.display = "none";
-                if (panelCustom) panelCustom.style.display = "block";
-                runCustomProductCalculation();
-            });
+    async function loadProducts() {
+        try {
+            const resp = await apiFetch("/api/products");
+            if (resp.ok) {
+                appState.products = await resp.json();
+                populateProductDropdown();
+            }
+        } catch (err) {
+            console.error("Failed to load products:", err);
         }
+    }
 
-        // Load OnePlus 12R Preset Button
-        const btnOnePlus = document.getElementById("btnFillOnePlus");
-        if (btnOnePlus) {
-            btnOnePlus.addEventListener("click", () => {
-                document.getElementById("customProdName").value = "OnePlus 12R 5G 16GB/256GB";
-                document.getElementById("customCategory").value = "Electronics";
-                document.getElementById("customCity").value = activeCity;
-                document.getElementById("customCostPrice").value = "32000";
-                document.getElementById("customCurrentPrice").value = "39999";
-                document.getElementById("customMRP").value = "45999";
-                document.getElementById("customCompPrice").value = "38990";
-                document.getElementById("customStock").value = "45";
-                document.getElementById("customOrders").value = "28";
-                document.getElementById("customFestivalDays").value = "14";
-                document.getElementById("customWeather").value = "Clear";
-                document.getElementById("customCompStock").value = "In_Stock";
+    function populateProductDropdown() {
+        const select = document.getElementById("simActiveProductSelect");
+        const salesSelect = document.getElementById("salesProductSelect");
+        if (!select) return;
 
-                runCustomProductCalculation();
-                showToast("Loaded OnePlus 12R 5G flagship pricing parameters!");
-            });
-        }
+        select.innerHTML = '<option value="">-- Create or Select a Product --</option>';
+        if (salesSelect) salesSelect.innerHTML = '<option value="">-- Select Product --</option>';
 
-        // Custom Calculate Button
-        const btnCalc = document.getElementById("btnCalculateCustom");
-        if (btnCalc) {
-            btnCalc.addEventListener("click", () => {
-                runCustomProductCalculation();
-            });
-        }
+        appState.products.forEach(p => {
+            const opt = document.createElement("option");
+            opt.value = p.product_id;
+            opt.textContent = `${p.product_name} (${formatINR(p.current_price)})`;
+            select.appendChild(opt);
 
-        // Sliders & Knobs
-        const sliderComp = document.getElementById("sliderComp");
-        const sliderDemand = document.getElementById("sliderDemand");
-        const sliderInventory = document.getElementById("sliderInventory");
-        const sliderMargin = document.getElementById("sliderMargin");
-
-        function updateSliderLabels() {
-            if (sliderComp) document.getElementById("sliderCompVal").textContent = "₹" + parseInt(sliderComp.value).toLocaleString("en-IN");
-            if (sliderDemand) document.getElementById("sliderDemandVal").textContent = (parseInt(sliderDemand.value) / 100).toFixed(1) + "x";
-            if (sliderInventory) document.getElementById("sliderInventoryVal").textContent = sliderInventory.value + " Days";
-            if (sliderMargin) document.getElementById("sliderMarginVal").textContent = sliderMargin.value + "%";
-        }
-
-        [sliderComp, sliderDemand, sliderInventory, sliderMargin].forEach(s => {
-            if (s) {
-                s.addEventListener("input", () => {
-                    updateSliderLabels();
-                    clearTimeout(s._timer);
-                    s._timer = setTimeout(runActiveSimulation, 250);
-                });
+            if (salesSelect) {
+                const opt2 = document.createElement("option");
+                opt2.value = p.product_id;
+                opt2.textContent = `${p.product_name} (${p.category})`;
+                salesSelect.appendChild(opt2);
             }
         });
 
-        // Scenario Preset Chips
-        const presetChips = document.querySelectorAll("#presetChips .preset-chip");
-        presetChips.forEach(chip => {
-            chip.addEventListener("click", () => {
-                presetChips.forEach(c => c.classList.remove("active"));
-                chip.classList.add("active");
-                applyScenarioPreset(chip.dataset.preset);
-            });
-        });
-
-        // Product select event
-        const prodSelect = document.getElementById("simProductSelect");
-        if (prodSelect) {
-            prodSelect.addEventListener("change", () => {
-                currentProductIndex = parseInt(prodSelect.value) || 0;
-                syncSimulatorWithSelectedProduct();
-            });
+        if (appState.activeProductId) {
+            select.value = appState.activeProductId;
         }
-
-        // Apply recommendation button
-        const simApplyBtn = document.getElementById("simApplyBtn");
-        if (simApplyBtn) {
-            simApplyBtn.addEventListener("click", () => {
-                const rec = document.getElementById("simRecPrice").textContent;
-                showToast(`Applied optimal price ₹${rec} to active marketplace store in ${activeCity}!`);
-            });
-        }
-
-        // Initial setup
-        loadProductCatalog();
     }
 
-    function applyScenarioPreset(presetType) {
-        const sliderComp = document.getElementById("sliderComp");
-        const sliderDemand = document.getElementById("sliderDemand");
-        const sliderInventory = document.getElementById("sliderInventory");
-
-        const currComp = parseFloat(sliderComp.value) || 2500;
-
-        if (presetType === "diwali") {
-            if (sliderDemand) sliderDemand.value = "180"; // 1.8x demand
-            if (sliderInventory) sliderInventory.value = "20"; // tighter stock
-        } else if (presetType === "pricewar") {
-            if (sliderComp) sliderComp.value = Math.round(currComp * 0.88);
-            if (sliderDemand) sliderDemand.value = "90";
-        } else if (presetType === "clearance") {
-            if (sliderInventory) sliderInventory.value = "90"; // high stock
-            if (sliderDemand) sliderDemand.value = "70";
-        } else {
-            // Normal
-            if (sliderDemand) sliderDemand.value = "100";
-            if (sliderInventory) sliderInventory.value = "45";
+    function renderProductAnalyzer() {
+        populateProductDropdown();
+        const select = document.getElementById("simActiveProductSelect");
+        if (select && select.value) {
+            const prod = appState.products.find(p => p.product_id === select.value);
+            if (prod) loadProductIntoForm(prod);
+        } else if (appState.products.length > 0 && !appState.activeProductId) {
+            // Load first product by default
+            select.value = appState.products[0].product_id;
+            loadProductIntoForm(appState.products[0]);
         }
-
-        const sliderCompVal = document.getElementById("sliderCompVal");
-        if (sliderCompVal && sliderComp) sliderCompVal.textContent = "₹" + parseInt(sliderComp.value).toLocaleString("en-IN");
-        const sliderDemandVal = document.getElementById("sliderDemandVal");
-        if (sliderDemandVal && sliderDemand) sliderDemandVal.textContent = (parseInt(sliderDemand.value) / 100).toFixed(1) + "x";
-        const sliderInventoryVal = document.getElementById("sliderInventoryVal");
-        if (sliderInventoryVal && sliderInventory) sliderInventoryVal.textContent = sliderInventory.value + " Days";
-
-        runActiveSimulation();
     }
 
-    function syncSimulatorWithSelectedProduct() {
-        const filtered = masterCatalog.filter(p => p.Category === currentCategory || p.cat === currentCategory);
-        const listToUse = filtered.length > 0 ? filtered : masterCatalog;
-        const product = listToUse[currentProductIndex] || listToUse[0] || DEFAULT_CATALOG[0];
+    function loadProductIntoForm(prod) {
+        appState.activeProductId = prod.product_id;
+        document.getElementById("prodInputName").value = prod.product_name || "";
+        document.getElementById("prodInputCategory").value = prod.category || "Electronics";
+        document.getElementById("prodInputBrand").value = prod.brand || "";
+        document.getElementById("prodInputLocation").value = prod.location || "";
+        document.getElementById("prodInputCostPrice").value = prod.cost_price || "";
+        document.getElementById("prodInputCurrentPrice").value = prod.current_price || "";
+        document.getElementById("prodInputMRP").value = prod.mrp || "";
+        document.getElementById("prodInputCompetitorPrice").value = prod.competitor_price || "";
+        document.getElementById("prodInputCompetitorName").value = prod.competitor_name || "";
+        document.getElementById("prodInputStock").value = prod.stock_quantity !== null ? prod.stock_quantity : "";
+        document.getElementById("prodInputDailySales").value = prod.average_daily_sales !== null ? prod.average_daily_sales : "";
+        document.getElementById("prodInputGoal").value = prod.business_goal || "balanced";
 
-        const mrp = product.Base_MRP || product.mrp || 1000;
-        const cost = product.Cost_Price || Math.round(mrp * 0.5);
-        const compAvg = Math.round(mrp * 0.9);
-
+        // Sync slider values
         const sliderComp = document.getElementById("sliderComp");
         if (sliderComp) {
-            sliderComp.max = Math.round(mrp * 1.5);
-            sliderComp.min = Math.round(cost * 0.9);
-            sliderComp.value = compAvg;
-            document.getElementById("sliderCompVal").textContent = "₹" + compAvg.toLocaleString("en-IN");
+            const cPrice = prod.competitor_price || prod.current_price || 2000;
+            sliderComp.value = cPrice;
+            document.getElementById("sliderCompVal").textContent = formatINR(cPrice);
         }
 
-        const title = document.getElementById("simProductHeroTitle");
-        if (title) title.textContent = product.Product_Name || product.name || "Target SKU";
-
-        runActiveSimulation();
+        // Run real-time simulation
+        runStatelessSimulation();
     }
 
-    function runActiveSimulation() {
-        if (activeSimMode === "custom") {
-            runCustomProductCalculation();
-        } else {
-            runCatalogProductCalculation();
+    // Selector change event
+    const simProductSelect = document.getElementById("simActiveProductSelect");
+    if (simProductSelect) {
+        simProductSelect.addEventListener("change", () => {
+            const pid = simProductSelect.value;
+            if (pid) {
+                const prod = appState.products.find(p => p.product_id === pid);
+                if (prod) loadProductIntoForm(prod);
+            } else {
+                resetProductForm();
+            }
+        });
+    }
+
+    function resetProductForm() {
+        appState.activeProductId = null;
+        document.getElementById("prodInputName").value = "";
+        document.getElementById("prodInputCategory").value = "Electronics";
+        document.getElementById("prodInputBrand").value = "";
+        document.getElementById("prodInputLocation").value = "";
+        document.getElementById("prodInputCostPrice").value = "";
+        document.getElementById("prodInputCurrentPrice").value = "";
+        document.getElementById("prodInputMRP").value = "";
+        document.getElementById("prodInputCompetitorPrice").value = "";
+        document.getElementById("prodInputCompetitorName").value = "";
+        document.getElementById("prodInputStock").value = "";
+        document.getElementById("prodInputDailySales").value = "";
+        document.getElementById("prodInputGoal").value = "balanced";
+        document.getElementById("simProductHeroTitle").textContent = "New Product Specification";
+        document.getElementById("simRecPrice").textContent = "--";
+    }
+
+    const btnNewProduct = document.getElementById("btnNewProduct");
+    if (btnNewProduct) btnNewProduct.addEventListener("click", resetProductForm);
+
+    const sidebarAddProductBtn = document.getElementById("sidebarAddProductBtn");
+    if (sidebarAddProductBtn) {
+        sidebarAddProductBtn.addEventListener("click", () => {
+            switchView("simulator");
+            resetProductForm();
+        });
+    }
+
+    const headerAddProductBtn = document.getElementById("headerAddProductBtn");
+    if (headerAddProductBtn) {
+        headerAddProductBtn.addEventListener("click", () => {
+            switchView("simulator");
+            resetProductForm();
+        });
+    }
+
+    // Save Product Button
+    const btnSaveProductChanges = document.getElementById("btnSaveProductChanges");
+    if (btnSaveProductChanges) {
+        btnSaveProductChanges.addEventListener("click", async () => {
+            const payload = getProductFormData();
+            if (!payload) return;
+
+            try {
+                if (appState.activeProductId) {
+                    // Update existing
+                    const resp = await apiFetch(`/api/products/${appState.activeProductId}`, {
+                        method: "PUT",
+                        body: payload
+                    });
+                    if (resp.ok) {
+                        const updated = await resp.json();
+                        showToast(`Product "${updated.product_name}" updated successfully!`);
+                        await loadProducts();
+                    } else {
+                        const err = await resp.json();
+                        showToast(err.detail || "Failed to update product.", true);
+                    }
+                } else {
+                    // Create new
+                    const resp = await apiFetch("/api/products", {
+                        method: "POST",
+                        body: payload
+                    });
+                    if (resp.ok) {
+                        const created = await resp.json();
+                        appState.activeProductId = created.product_id;
+                        showToast(`Product "${created.product_name}" created successfully!`);
+                        await loadProducts();
+                        document.getElementById("simActiveProductSelect").value = created.product_id;
+                    } else {
+                        const err = await resp.json();
+                        showToast(err.detail || "Failed to create product.", true);
+                    }
+                }
+            } catch (err) {
+                showToast("Network error while saving product.", true);
+            }
+        });
+    }
+
+    // Analyze & Save Button
+    const btnRunFullAnalysis = document.getElementById("btnRunFullAnalysis");
+    if (btnRunFullAnalysis) {
+        btnRunFullAnalysis.addEventListener("click", async () => {
+            const payload = getProductFormData();
+            if (!payload) return;
+
+            try {
+                let productId = appState.activeProductId;
+                if (!productId) {
+                    // Save product first
+                    const pResp = await apiFetch("/api/products", { method: "POST", body: payload });
+                    if (!pResp.ok) {
+                        const err = await pResp.json();
+                        showToast(err.detail || "Failed to save product.", true);
+                        return;
+                    }
+                    const newProd = await pResp.json();
+                    productId = newProd.product_id;
+                    appState.activeProductId = productId;
+                    await loadProducts();
+                } else {
+                    // Save updates
+                    await apiFetch(`/api/products/${productId}`, { method: "PUT", body: payload });
+                }
+
+                // Run Analysis Endpoint
+                const aResp = await apiFetch(`/api/products/${productId}/analyze`, { method: "POST" });
+                if (aResp.ok) {
+                    const analysis = await aResp.json();
+                    appState.latestAnalysis = analysis;
+                    renderAnalysisResults(analysis);
+                    showToast("AI dynamic pricing analysis completed & saved!");
+                    await Promise.all([loadDashboardOverview(), loadActionQueue(), loadAnalytics()]);
+                } else {
+                    const err = await aResp.json();
+                    showToast(err.detail || "Analysis failed.", true);
+                }
+            } catch (err) {
+                showToast("Error running analysis.", true);
+            }
+        });
+    }
+
+    function getProductFormData() {
+        const name = document.getElementById("prodInputName")?.value.trim();
+        const cost = parseFloat(document.getElementById("prodInputCostPrice")?.value);
+        const curr = parseFloat(document.getElementById("prodInputCurrentPrice")?.value);
+        const mrp = parseFloat(document.getElementById("prodInputMRP")?.value);
+
+        if (!name) {
+            showToast("Please enter a product name.", true);
+            return null;
         }
-    }
+        if (isNaN(cost) || cost <= 0) {
+            showToast("Please enter a valid positive cost price.", true);
+            return null;
+        }
+        if (isNaN(curr) || curr <= 0) {
+            showToast("Please enter a valid current selling price.", true);
+            return null;
+        }
+        if (isNaN(mrp) || mrp <= 0) {
+            showToast("Please enter a valid MRP.", true);
+            return null;
+        }
+        if (cost > mrp) {
+            showToast("Cost price cannot exceed MRP.", true);
+            return null;
+        }
 
-    async function runCatalogProductCalculation() {
-        const filtered = masterCatalog.filter(p => p.Category === currentCategory || p.cat === currentCategory);
-        const listToUse = filtered.length > 0 ? filtered : masterCatalog;
-        const product = listToUse[currentProductIndex] || listToUse[0] || DEFAULT_CATALOG[0];
+        const compVal = document.getElementById("prodInputCompetitorPrice")?.value;
+        const compPrice = compVal ? parseFloat(compVal) : null;
+        const compName = document.getElementById("prodInputCompetitorName")?.value.trim() || null;
+        const stockVal = document.getElementById("prodInputStock")?.value;
+        const stock = stockVal ? parseInt(stockVal) : null;
+        const salesVal = document.getElementById("prodInputDailySales")?.value;
+        const sales = salesVal ? parseFloat(salesVal) : null;
 
-        const mrp = floatVal(product.Base_MRP || product.mrp || 1000);
-        const cost = floatVal(product.Cost_Price || mrp * 0.55);
-        const curr = Math.round(mrp * 0.88);
-        const comp = floatVal(document.getElementById("sliderComp")?.value || curr);
-        const demandMult = (parseInt(document.getElementById("sliderDemand")?.value || 100) / 100);
-        const runwayDays = parseInt(document.getElementById("sliderInventory")?.value || 45);
-
-        const payload = {
-            product_id: product.Product_ID || "PROD-CAT-001",
-            product_name: product.Product_Name || product.name || "Catalog Product",
-            category: currentCategory,
-            city: activeCity,
+        return {
+            product_name: name,
+            category: document.getElementById("prodInputCategory")?.value || "Electronics",
+            brand: document.getElementById("prodInputBrand")?.value.trim() || null,
+            location: document.getElementById("prodInputLocation")?.value.trim() || null,
             cost_price: cost,
             current_price: curr,
             mrp: mrp,
-            competitor_avg_price: comp,
-            stock_level: Math.round(runwayDays * 25),
-            orders: Math.round(25 * demandMult),
-            days_until_next_festival: 14,
-            weather_type: "Clear",
-            competitor_stock_status: "In_Stock"
+            competitor_price: compPrice,
+            competitor_name: compName,
+            stock_quantity: stock,
+            average_daily_sales: sales,
+            business_goal: document.getElementById("prodInputGoal")?.value || "balanced"
         };
-
-        executePrediction(payload);
     }
 
-    async function runCustomProductCalculation() {
-        const name = document.getElementById("customProdName")?.value || "Custom Product";
-        const cat = document.getElementById("customCategory")?.value || "Electronics";
-        const city = document.getElementById("customCity")?.value || activeCity;
-        const cost = floatVal(document.getElementById("customCostPrice")?.value || 1000);
-        const curr = floatVal(document.getElementById("customCurrentPrice")?.value || 1500);
-        const mrp = floatVal(document.getElementById("customMRP")?.value || 2000);
-        const comp = floatVal(document.getElementById("customCompPrice")?.value || curr);
-        const stock = parseInt(document.getElementById("customStock")?.value || 50);
-        const orders = parseInt(document.getElementById("customOrders")?.value || 20);
-        const fest = parseInt(document.getElementById("customFestivalDays")?.value || 30);
-        const weather = document.getElementById("customWeather")?.value || "Clear";
-        const compStock = document.getElementById("customCompStock")?.value || "In_Stock";
+    // Stateless Simulation Runner (Sliders & Knobs)
+    let simTimer = null;
+    function debounceSimulation() {
+        clearTimeout(simTimer);
+        simTimer = setTimeout(runStatelessSimulation, 250);
+    }
 
-        // Update slider max if needed
-        const sliderComp = document.getElementById("sliderComp");
-        if (sliderComp) {
-            sliderComp.max = Math.max(80000, Math.round(mrp * 1.5));
-            sliderComp.value = comp;
-            document.getElementById("sliderCompVal").textContent = "₹" + comp.toLocaleString("en-IN");
+    // Slider inputs
+    const sliderComp = document.getElementById("sliderComp");
+    const sliderDemand = document.getElementById("sliderDemand");
+    const sliderInventory = document.getElementById("sliderInventory");
+    const sliderMargin = document.getElementById("sliderMargin");
+
+    [sliderComp, sliderDemand, sliderInventory, sliderMargin].forEach(s => {
+        if (s) {
+            s.addEventListener("input", () => {
+                if (sliderComp) document.getElementById("sliderCompVal").textContent = formatINR(sliderComp.value);
+                if (sliderDemand) document.getElementById("sliderDemandVal").textContent = (parseInt(sliderDemand.value) / 100).toFixed(1) + "x";
+                if (sliderInventory) document.getElementById("sliderInventoryVal").textContent = sliderInventory.value + " Days";
+                if (sliderMargin) document.getElementById("sliderMarginVal").textContent = sliderMargin.value + "%";
+                debounceSimulation();
+            });
         }
+    });
 
-        const title = document.getElementById("simProductHeroTitle");
-        if (title) title.textContent = name;
+    // Form inputs change simulation trigger
+    ["prodInputCostPrice", "prodInputCurrentPrice", "prodInputMRP", "prodInputCategory", "prodInputCompetitorPrice", "prodInputStock", "prodInputDailySales"].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener("input", debounceSimulation);
+    });
 
-        const payload = {
-            product_id: "PROD-CUSTOM-999",
+    async function runStatelessSimulation() {
+        const cost = parseFloat(document.getElementById("prodInputCostPrice")?.value);
+        const curr = parseFloat(document.getElementById("prodInputCurrentPrice")?.value);
+        const mrp = parseFloat(document.getElementById("prodInputMRP")?.value);
+        if (isNaN(cost) || isNaN(curr) || isNaN(mrp) || cost <= 0 || curr <= 0 || mrp <= 0 || cost > mrp) return;
+
+        const name = document.getElementById("prodInputName")?.value || "Simulation Target";
+        const cat = document.getElementById("prodInputCategory")?.value || "Electronics";
+        const comp = sliderComp ? parseFloat(sliderComp.value) : (parseFloat(document.getElementById("prodInputCompetitorPrice")?.value) || curr);
+        const demandMult = sliderDemand ? (parseInt(sliderDemand.value) / 100) : 1.0;
+        const runway = sliderInventory ? parseInt(sliderInventory.value) : 30;
+        const orders = Math.round(25 * demandMult);
+        const stock = Math.round(runway * orders);
+
+        const simPayload = {
+            product_id: appState.activeProductId || "PROD-SIM-001",
             product_name: name,
             category: cat,
-            city: city,
             cost_price: cost,
             current_price: curr,
             mrp: mrp,
             competitor_avg_price: comp,
             stock_level: stock,
-            orders: orders,
-            days_until_next_festival: fest,
-            weather_type: weather,
-            competitor_stock_status: compStock
+            orders: orders
         };
 
-        executePrediction(payload);
-    }
-
-    async function executePrediction(payload) {
         try {
-            const resp = await fetch(`${API_BASE}/predict`, {
+            const resp = await fetch("/predict", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload)
+                body: JSON.stringify(simPayload)
             });
 
             if (resp.ok) {
                 const data = await resp.json();
-                renderSimulationResults(data, payload);
-            } else {
-                renderSimulationFallback(payload);
+                renderSimulationOutputs(data, simPayload);
             }
-        } catch {
-            renderSimulationFallback(payload);
+        } catch (err) {
+            console.error("Simulation failed:", err);
         }
     }
 
-    function renderSimulationResults(data, payload) {
+    function renderSimulationOutputs(data, payload) {
+        const title = document.getElementById("simProductHeroTitle");
+        if (title) title.textContent = payload.product_name;
+
         const recPrice = data.recommended_price;
         const currPrice = payload.current_price;
         const costPrice = payload.cost_price;
@@ -747,13 +839,14 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById("simCurrentPriceDisplay").textContent = formatINR(currPrice);
 
         const delta = recPrice - currPrice;
-        const deltaPct = (delta / currPrice) * 100;
+        const deltaPct = currPrice > 0 ? (delta / currPrice) * 100 : 0;
         const sign = delta >= 0 ? "+" : "";
         document.getElementById("simPriceDeltaDisplay").textContent = `${sign}${formatINR(delta)} (${sign}${deltaPct.toFixed(1)}%)`;
 
         const marginPill = document.getElementById("simMarginPill");
+        const marginPct = recPrice > 0 ? ((recPrice - costPrice) / recPrice) * 100 : 0;
         if (marginPill) {
-            marginPill.textContent = `${sign}${deltaPct.toFixed(1)}% Lift`;
+            marginPill.textContent = `${marginPct.toFixed(1)}% Gross Margin`;
             marginPill.style.background = delta >= 0 ? "var(--emerald-bg)" : "var(--coral-bg)";
             marginPill.style.color = delta >= 0 ? "var(--emerald)" : "var(--coral)";
             marginPill.style.borderColor = delta >= 0 ? "var(--emerald-border)" : "var(--coral-border)";
@@ -761,36 +854,34 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const actionBadge = document.getElementById("simActionBadge");
         if (actionBadge) {
-            actionBadge.textContent = data.recommendation || (deltaPct > 2 ? "Increase Price" : deltaPct < -2 ? "Decrease Price" : "Hold Price");
-            actionBadge.style.background = deltaPct > 2 ? "var(--emerald-bg)" : deltaPct < -2 ? "var(--coral-bg)" : "var(--brand-light)";
-            actionBadge.style.color = deltaPct > 2 ? "var(--emerald)" : deltaPct < -2 ? "var(--coral)" : "var(--brand-primary)";
+            actionBadge.textContent = data.recommendation;
+            actionBadge.style.background = deltaPct > 1.5 ? "var(--emerald-bg)" : deltaPct < -1.5 ? "var(--coral-bg)" : "var(--brand-light)";
+            actionBadge.style.color = deltaPct > 1.5 ? "var(--emerald)" : deltaPct < -1.5 ? "var(--coral)" : "var(--brand-primary)";
+        }
+
+        // Confidence
+        const confBadge = document.getElementById("simConfidenceBadge");
+        if (confBadge) {
+            confBadge.textContent = `Confidence: ${(data.confidence_level || 'MEDIUM').toUpperCase()}`;
+            confBadge.className = `confidence-badge badge-${data.confidence_level || 'medium'}`;
         }
 
         // Guardrails
-        const minAllowed = data.min_allowed_price || (costPrice * 1.055);
-        const maxAllowed = data.max_allowed_price || (payload.mrp * 1.05);
-        document.getElementById("simFloorPrice").textContent = formatINR(minAllowed);
-        document.getElementById("simCeilPrice").textContent = formatINR(maxAllowed);
+        document.getElementById("simFloorPrice").textContent = formatINR(data.min_allowed_price);
+        document.getElementById("simCeilPrice").textContent = formatINR(data.max_allowed_price);
 
         const statusBadge = document.getElementById("simGuardrailStatus");
         if (statusBadge) {
-            if (data.guardrail_applied) {
-                statusBadge.textContent = "Clipped by Guardrail";
-                statusBadge.className = "guardrail-badge badge-clipped";
-            } else {
-                statusBadge.textContent = "Verified Pass";
-                statusBadge.className = "guardrail-badge badge-pass";
-            }
+            statusBadge.textContent = data.guardrail_applied ? "Clipped by Guardrail" : "Verified Pass";
+            statusBadge.className = data.guardrail_applied ? "guardrail-badge badge-clipped" : "guardrail-badge badge-pass";
         }
 
-        // 30-Day Projections
-        const volume = Math.round(payload.orders * 30 * (deltaPct < 0 ? 1.25 : 0.95));
+        // Projections
+        const volume = Math.round(payload.orders * 30 * (deltaPct < 0 ? 1.2 : 0.95));
         const revenue = recPrice * volume;
-        const grossMargin = ((recPrice - costPrice) / recPrice) * 100;
-
-        document.getElementById("simVolume").textContent = formatNum(volume);
-        document.getElementById("simRevenue").textContent = revenue >= 100000 ? `₹${(revenue / 100000).toFixed(2)}L` : formatINR(revenue);
-        document.getElementById("simMargin").textContent = `${grossMargin.toFixed(1)}%`;
+        document.getElementById("simVolume").textContent = `${formatNumber(volume)} Units`;
+        document.getElementById("simRevenue").textContent = formatINR(revenue);
+        document.getElementById("simMargin").textContent = `${marginPct.toFixed(1)}%`;
 
         // Insights list
         const insightsList = document.getElementById("simInsightsList");
@@ -803,71 +894,535 @@ document.addEventListener("DOMContentLoaded", () => {
             });
         }
 
-        renderTopologyChart(recPrice, costPrice, payload.mrp);
+        // Economic Drivers
+        const driversTags = document.getElementById("economicDriversTags");
+        if (driversTags) {
+            driversTags.innerHTML = "";
+            if (Array.isArray(data.economic_drivers)) {
+                data.economic_drivers.forEach(d => {
+                    const span = document.createElement("span");
+                    span.className = "driver-tag";
+                    span.innerHTML = `<strong>${d.name}:</strong> ${d.detail}`;
+                    driversTags.appendChild(span);
+                });
+            }
+        }
+
+        renderTopologySimulationChart(data.topology_curve, recPrice, costPrice, payload.mrp, currPrice);
     }
 
-    function renderSimulationFallback(payload) {
-        const cost = payload.cost_price;
-        const mrp = payload.mrp;
-        const comp = payload.competitor_avg_price;
+    function renderAnalysisResults(analysis) {
+        document.getElementById("simRecPrice").textContent = Math.round(analysis.recommended_price).toLocaleString("en-IN");
+        document.getElementById("simCurrentPriceDisplay").textContent = formatINR(analysis.input_current_price);
+        document.getElementById("simPriceDeltaDisplay").textContent = `${analysis.price_change >= 0 ? '+' : ''}${formatINR(analysis.price_change)} (${analysis.price_change_pct >= 0 ? '+' : ''}${analysis.price_change_pct.toFixed(1)}%)`;
 
-        const optimal = Math.round(Math.max(cost * 1.055, Math.min(mrp, (cost * 1.25 + comp * 0.75) / 2)));
-        renderSimulationResults({
-            recommended_price: optimal,
-            price_change: optimal - payload.current_price,
-            price_change_percent: ((optimal - payload.current_price) / payload.current_price) * 100,
-            recommendation: optimal > payload.current_price ? "Increase Price" : "Decrease Price",
-            guardrail_applied: false,
-            min_allowed_price: cost * 1.055,
-            max_allowed_price: mrp * 1.05,
-            insights: [
-                `Recommended price optimizes margin while respecting ₹${comp.toFixed(0)} market anchor.`,
-                `Protected with guaranteed minimum 5.5% profit floor above cost.`
-            ]
-        }, payload);
+        const confBadge = document.getElementById("simConfidenceBadge");
+        if (confBadge) {
+            confBadge.textContent = `Confidence: ${analysis.confidence_level.toUpperCase()}`;
+            confBadge.className = `confidence-badge badge-${analysis.confidence_level}`;
+        }
     }
 
-    function renderTopologyChart(optPrice, costPrice, mrp) {
-        const canvas = document.getElementById("topologyChart");
+    // Apply Recommendation Button (Product Analyzer)
+    const btnApplyRecommendation = document.getElementById("btnApplyRecommendation");
+    if (btnApplyRecommendation) {
+        btnApplyRecommendation.addEventListener("click", async () => {
+            if (!appState.latestAnalysis) {
+                showToast("Please run an analysis before applying a recommendation.", true);
+                return;
+            }
+            await applyRecommendation(appState.latestAnalysis.analysis_id, btnApplyRecommendation);
+        });
+    }
+
+    async function applyRecommendation(analysisId, buttonEl) {
+        try {
+            if (buttonEl) {
+                buttonEl.disabled = true;
+                buttonEl.textContent = "Applying...";
+            }
+            const resp = await apiFetch(`/api/analyses/${analysisId}/apply`, { method: "PUT" });
+            if (resp.ok) {
+                const res = await resp.json();
+                showToast(`Price updated to ${formatINR(res.new_price)}! Pricing history logged.`);
+                if (buttonEl) {
+                    buttonEl.textContent = "Applied ✓";
+                    buttonEl.style.background = "var(--emerald-bg)";
+                    buttonEl.style.color = "var(--emerald)";
+                }
+                await Promise.all([loadProducts(), loadDashboardOverview(), loadActionQueue(), loadAnalytics()]);
+                renderDashboard();
+            } else {
+                const err = await resp.json();
+                showToast(err.detail || "Failed to apply recommendation.", true);
+                if (buttonEl) {
+                    buttonEl.disabled = false;
+                    buttonEl.textContent = "Apply";
+                }
+            }
+        } catch (err) {
+            showToast("Network error applying recommendation.", true);
+            if (buttonEl) {
+                buttonEl.disabled = false;
+                buttonEl.textContent = "Apply";
+            }
+        }
+    }
+
+    // =========================================================================
+    // 8. VIEW 3: REPRICE ACTION QUEUE
+    // =========================================================================
+    async function loadActionQueue() {
+        try {
+            const resp = await apiFetch("/api/dashboard/queue");
+            if (resp.ok) {
+                appState.actionQueue = await resp.json();
+                const badge = document.getElementById("queueBadge");
+                if (badge) {
+                    badge.textContent = appState.actionQueue.length;
+                    badge.style.display = appState.actionQueue.length > 0 ? "inline-block" : "none";
+                }
+            }
+        } catch (err) {
+            console.error("Failed to load queue:", err);
+        }
+    }
+
+    function renderActionQueue() {
+        const countPill = document.getElementById("queuePendingCount");
+        const countIndicator = document.getElementById("queueCountIndicator");
+        if (countPill) countPill.textContent = appState.actionQueue.length;
+        if (countIndicator) countIndicator.textContent = `${appState.actionQueue.length} Pending`;
+
+        const tbody = document.getElementById("queueTableBody");
+        if (!tbody) return;
+        tbody.innerHTML = "";
+
+        const filter = appState.queueFilterCategory;
+        const list = filter === "all" ? appState.actionQueue : appState.actionQueue.filter(i => i.category === filter);
+
+        if (list.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="9" style="text-align:center;padding:3rem 1rem;color:var(--text-muted);">
+                        <span class="material-symbols-outlined" style="font-size:36px;display:block;margin-bottom:0.5rem;color:var(--text-muted);">check_circle</span>
+                        <strong>No Pending Adjustments in Action Queue</strong>
+                        <p style="font-size:0.85rem;margin-top:0.35rem;">All optimizations have been applied or dismissed.</p>
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        list.forEach(item => {
+            const tr = document.createElement("tr");
+            const isUp = item.price_change >= 0;
+            const colorClass = isUp ? "price-up" : "price-down";
+            const arrow = isUp ? "↑" : "↓";
+            const confClass = item.confidence_level === "high" ? "badge-high" : item.confidence_level === "medium" ? "badge-medium" : "badge-low";
+
+            tr.innerHTML = `
+                <td><input type="checkbox" class="queue-checkbox row-select" data-id="${item.analysis_id}" checked></td>
+                <td>
+                    <span class="table-product-name">${item.product_name}</span>
+                    <span class="table-product-sku">ID: ${item.product_id.slice(0, 8)}</span>
+                </td>
+                <td><span class="feat-tag feat-pricing">${item.category}</span></td>
+                <td class="mono-num">${formatINR(item.cost_price)}</td>
+                <td class="mono-num">${formatINR(item.current_price)}</td>
+                <td class="mono-num ${colorClass}" style="font-weight:700;">${formatINR(item.recommended_price)} ${arrow}</td>
+                <td class="mono-num ${colorClass}">+${item.margin_lift_pct.toFixed(1)}% Lift</td>
+                <td><span class="confidence-badge ${confClass}">${item.confidence_level.toUpperCase()}</span></td>
+                <td>
+                    <div style="display:flex;gap:0.4rem;">
+                        <button class="table-approve-btn" data-id="${item.analysis_id}">Approve</button>
+                        <button class="btn-secondary btn-sm btn-dismiss" data-id="${item.analysis_id}" style="padding:0.35rem 0.6rem;">Dismiss</button>
+                    </div>
+                </td>
+            `;
+
+            tr.querySelector(".table-approve-btn").addEventListener("click", (e) => applyRecommendation(item.analysis_id, e.target));
+            tr.querySelector(".btn-dismiss").addEventListener("click", () => dismissRecommendation(item.analysis_id));
+            tbody.appendChild(tr);
+        });
+    }
+
+    async function dismissRecommendation(analysisId) {
+        try {
+            await apiFetch(`/api/analyses/${analysisId}/dismiss`, { method: "PUT" });
+            showToast("Recommendation dismissed.");
+            await Promise.all([loadActionQueue(), loadDashboardOverview()]);
+            renderActionQueue();
+        } catch {
+            showToast("Failed to dismiss recommendation.", true);
+        }
+    }
+
+    // Queue Filters
+    const filterChips = document.querySelectorAll("#queueCategoryFilters .filter-chip");
+    filterChips.forEach(chip => {
+        chip.addEventListener("click", () => {
+            filterChips.forEach(c => c.classList.remove("active"));
+            chip.classList.add("active");
+            appState.queueFilterCategory = chip.dataset.filter || "all";
+            renderActionQueue();
+        });
+    });
+
+    const queueSelectAll = document.getElementById("queueSelectAll");
+    if (queueSelectAll) {
+        queueSelectAll.addEventListener("change", () => {
+            document.querySelectorAll(".row-select").forEach(cb => cb.checked = queueSelectAll.checked);
+        });
+    }
+
+    const queueApproveSelBtn = document.getElementById("queueApproveSelBtn");
+    if (queueApproveSelBtn) {
+        queueApproveSelBtn.addEventListener("click", async () => {
+            const selected = document.querySelectorAll(".row-select:checked");
+            if (selected.length === 0) {
+                showToast("Please select items to approve.");
+                return;
+            }
+            let success = 0;
+            for (const cb of selected) {
+                try {
+                    await apiFetch(`/api/analyses/${cb.dataset.id}/apply`, { method: "PUT" });
+                    success++;
+                } catch {}
+            }
+            showToast(`Approved ${success} selected price adjustments!`);
+            await Promise.all([loadProducts(), loadActionQueue(), loadDashboardOverview(), loadAnalytics()]);
+            renderActionQueue();
+        });
+    }
+
+    // =========================================================================
+    // 9. VIEW 4: COMPETITOR INSIGHTS (User-Product-Anchored)
+    // =========================================================================
+    function renderCompetitorInsights() {
+        const tbody = document.getElementById("competitorTableBody");
+        if (!tbody) return;
+        tbody.innerHTML = "";
+
+        if (appState.products.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="8" style="text-align:center;padding:3rem 1rem;color:var(--text-muted);">
+                        <span class="material-symbols-outlined" style="font-size:36px;display:block;margin-bottom:0.5rem;color:var(--text-muted);">storefront</span>
+                        <strong>No Products in Your Catalog</strong>
+                        <p style="font-size:0.85rem;margin-top:0.35rem;">Add your products and optional competitor prices to view competitor intelligence.</p>
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        appState.products.forEach(p => {
+            const tr = document.createElement("tr");
+            const hasComp = p.competitor_price !== null && p.competitor_price > 0;
+            const gap = hasComp ? ((p.current_price - p.competitor_price) / p.competitor_price) * 100 : null;
+            const position = gap !== null ? (gap > 2 ? "Above Market" : gap < -2 ? "Value Leader" : "Market Parity") : "No Benchmark";
+            const positionColor = gap !== null ? (gap > 2 ? "var(--coral)" : gap < -2 ? "var(--emerald)" : "var(--text-primary)") : "var(--text-muted)";
+
+            tr.innerHTML = `
+                <td>
+                    <span class="table-product-name">${p.product_name}</span>
+                    <span class="table-product-sku">ID: ${p.product_id.slice(0, 8)}</span>
+                </td>
+                <td><span class="feat-tag feat-pricing">${p.category || 'General'}</span></td>
+                <td class="mono-num">${formatINR(p.current_price)}</td>
+                <td class="mono-num">${hasComp ? formatINR(p.competitor_price) : '<span style="color:var(--text-muted);">Not Provided</span>'}</td>
+                <td>${p.competitor_name || '<span style="color:var(--text-muted);">-</span>'}</td>
+                <td class="mono-num" style="font-weight:700;color:${positionColor};">
+                    ${gap !== null ? `${gap > 0 ? '+' : ''}${gap.toFixed(1)}%` : '<span style="color:var(--text-muted);font-weight:400;">Unavailable</span>'}
+                </td>
+                <td><span style="font-weight:600;color:${positionColor};">${position}</span></td>
+                <td>
+                    <span class="feat-tag ${hasComp ? 'feat-funnel' : 'feat-macro'}">
+                        ${hasComp ? 'User Provided' : 'Unavailable'}
+                    </span>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    // =========================================================================
+    // 10. VIEW 5: REVENUE & MARGIN ANALYTICS
+    // =========================================================================
+    async function loadAnalytics() {
+        try {
+            const resp = await apiFetch("/api/dashboard/analytics");
+            if (resp.ok) {
+                appState.analyticsData = await resp.json();
+            }
+        } catch (err) {
+            console.error("Failed to load analytics:", err);
+        }
+    }
+
+    function renderRevenueAnalytics() {
+        const a = appState.analyticsData;
+        if (!a) return;
+
+        // Actual Revenue
+        const actRevEl = document.getElementById("analyticsActualRevenue");
+        const actRevSub = document.getElementById("analyticsActualRevenueSub");
+        if (actRevEl) {
+            actRevEl.textContent = a.has_actual_sales_data ? formatINR(a.actual_historical_revenue) : "₹0.00";
+        }
+        if (actRevSub) {
+            actRevSub.textContent = a.has_actual_sales_data ? "From logged sales history" : "No historical sales logged yet";
+        }
+
+        // Projected Revenue
+        const projRevEl = document.getElementById("analyticsProjectedRevenue");
+        if (projRevEl) {
+            projRevEl.textContent = a.projected_total_revenue_30d !== null ? formatINR(a.projected_total_revenue_30d) : "₹0.00";
+        }
+
+        // Incremental Lift
+        const incLiftEl = document.getElementById("analyticsIncrementalLift");
+        if (incLiftEl) {
+            incLiftEl.textContent = a.projected_incremental_profit_lift_30d !== null ? `+${formatINR(a.projected_incremental_profit_lift_30d)}` : "₹0.00";
+        }
+
+        // Products Count
+        const totalProdEl = document.getElementById("analyticsTotalProducts");
+        const totalAnalyzedEl = document.getElementById("analyticsTotalAnalyzed");
+        if (totalProdEl) totalProdEl.textContent = formatNumber(a.total_products_count);
+        if (totalAnalyzedEl) totalAnalyzedEl.textContent = `${a.total_analyzed_count} analyzed`;
+
+        // Category Margin Breakdown List
+        const catList = document.getElementById("categoryBreakdownList");
+        if (catList) {
+            catList.innerHTML = "";
+            if (!a.category_margin_breakdown || a.category_margin_breakdown.length === 0) {
+                catList.innerHTML = '<p style="color:var(--text-muted);font-size:0.85rem;">Add products to see category margin breakdown.</p>';
+            } else {
+                a.category_margin_breakdown.forEach(c => {
+                    const div = document.createElement("div");
+                    div.className = "category-breakdown-item";
+                    div.innerHTML = `
+                        <div class="cat-item-left">
+                            <span class="cat-item-name">${c.category}</span>
+                            <span class="cat-item-skus">${c.sku_count} SKU${c.sku_count > 1 ? 's' : ''}</span>
+                        </div>
+                        <div class="cat-item-margin">${c.avg_margin_pct.toFixed(1)}% Avg Margin</div>
+                    `;
+                    catList.appendChild(div);
+                });
+            }
+        }
+
+        renderRevenueTrajectoryChart(a.sales_trajectory, a.has_actual_sales_data, a.projected_total_revenue_30d);
+    }
+
+    // Log Sales Modal
+    const btnOpenLogSalesModal = document.getElementById("btnOpenLogSalesModal");
+    const closeLogSalesModal = document.getElementById("closeLogSalesModal");
+    const btnCancelLogSales = document.getElementById("btnCancelLogSales");
+    const btnSubmitLogSales = document.getElementById("btnSubmitLogSales");
+
+    if (btnOpenLogSalesModal) btnOpenLogSalesModal.addEventListener("click", () => openModal(logSalesModal));
+    if (closeLogSalesModal) closeLogSalesModal.addEventListener("click", () => closeModal(logSalesModal));
+    if (btnCancelLogSales) btnCancelLogSales.addEventListener("click", () => closeModal(logSalesModal));
+
+    if (btnSubmitLogSales) {
+        btnSubmitLogSales.addEventListener("click", async () => {
+            const pid = document.getElementById("salesProductSelect")?.value;
+            const period = document.getElementById("salesPeriodDate")?.value.trim();
+            const units = parseInt(document.getElementById("salesUnitsSold")?.value);
+            const price = parseFloat(document.getElementById("salesSellingPrice")?.value);
+
+            if (!pid) { showToast("Please select a product.", true); return; }
+            if (!period) { showToast("Please enter a period/date.", true); return; }
+            if (isNaN(units) || units < 0) { showToast("Please enter valid units sold.", true); return; }
+            if (isNaN(price) || price <= 0) { showToast("Please enter a valid realized price.", true); return; }
+
+            try {
+                const resp = await apiFetch(`/api/products/${pid}/sales`, {
+                    method: "POST",
+                    body: {
+                        period_date: period,
+                        units_sold: units,
+                        selling_price: price
+                    }
+                });
+
+                if (resp.ok) {
+                    showToast("Actual sales record logged successfully!");
+                    closeModal(logSalesModal);
+                    await loadAnalytics();
+                    renderRevenueAnalytics();
+                } else {
+                    const err = await resp.json();
+                    showToast(err.detail || "Failed to log sales.", true);
+                }
+            } catch {
+                showToast("Error logging sales.", true);
+            }
+        });
+    }
+
+    // =========================================================================
+    // 11. VIEW 6: PRICING RULES & GUARDRAILS
+    // =========================================================================
+    async function loadSettings() {
+        try {
+            const resp = await apiFetch("/api/settings");
+            if (resp.ok) {
+                appState.settings = await resp.json();
+            }
+        } catch (err) {
+            console.error("Failed to load settings:", err);
+        }
+    }
+
+    function renderPricingRules() {
+        const s = appState.settings;
+        if (!s) return;
+
+        const marginEl = document.getElementById("ruleMarginFloor");
+        const corridorEl = document.getElementById("ruleCorridorMin");
+        const belowCostEl = document.getElementById("ruleNeverBelowCost");
+        const aboveMRPEl = document.getElementById("ruleNeverAboveMRP");
+        const maxPriceChangeEl = document.getElementById("ruleMaxPriceChange");
+        const maxDiscountEl = document.getElementById("ruleMaxDiscount");
+
+        if (marginEl) marginEl.value = s.margin_floor_pct;
+        if (corridorEl) corridorEl.value = s.corridor_min_pct;
+        if (belowCostEl) belowCostEl.checked = s.never_below_cost;
+        if (aboveMRPEl) aboveMRPEl.checked = s.never_above_mrp;
+        if (maxPriceChangeEl) maxPriceChangeEl.value = s.max_price_change_pct;
+        if (maxDiscountEl) maxDiscountEl.value = s.max_discount_pct;
+    }
+
+    const btnSavePricingRules = document.getElementById("btnSavePricingRules");
+    if (btnSavePricingRules) {
+        btnSavePricingRules.addEventListener("click", async () => {
+            const payload = {
+                margin_floor_pct: parseFloat(document.getElementById("ruleMarginFloor")?.value || 5.5),
+                corridor_min_pct: parseFloat(document.getElementById("ruleCorridorMin")?.value || -25.0),
+                corridor_max_pct: 25.0,
+                never_below_cost: document.getElementById("ruleNeverBelowCost")?.checked ?? true,
+                never_above_mrp: document.getElementById("ruleNeverAboveMRP")?.checked ?? true,
+                max_price_change_pct: parseFloat(document.getElementById("ruleMaxPriceChange")?.value || 15.0),
+                max_discount_pct: parseFloat(document.getElementById("ruleMaxDiscount")?.value || 40.0)
+            };
+
+            try {
+                const resp = await apiFetch("/api/settings", { method: "PUT", body: payload });
+                if (resp.ok) {
+                    appState.settings = await resp.json();
+                    showToast("Pricing guardrails and rules saved to database!");
+                } else {
+                    showToast("Failed to save rules.", true);
+                }
+            } catch {
+                showToast("Network error saving rules.", true);
+            }
+        });
+    }
+
+    // =========================================================================
+    // 12. CHARTS (Data-Driven Canvas Rendering)
+    // =========================================================================
+    function renderProfitFrontierChart() {
+        const canvas = document.getElementById("profitFrontierChart");
         if (!canvas) return;
         const ctx = canvas.getContext("2d");
-        const w = (canvas.width = canvas.parentElement.clientWidth);
-        const h = (canvas.height = 180);
+        const w = (canvas.width = canvas.parentElement.clientWidth || 400);
+        const h = (canvas.height = 240);
 
         ctx.clearRect(0, 0, w, h);
 
-        // Background grid
+        // Gridlines
         ctx.strokeStyle = "#E2E8F0";
         ctx.lineWidth = 1;
-        for (let y = 30; y < h - 20; y += 35) {
+        for (let y = 30; y < h - 20; y += 40) {
             ctx.beginPath();
             ctx.moveTo(30, y);
             ctx.lineTo(w - 20, y);
             ctx.stroke();
         }
 
-        // Draw parabolic curve
-        const gradient = ctx.createLinearGradient(0, 0, w, 0);
-        gradient.addColorStop(0, "#3B82F6");
-        gradient.addColorStop(0.5, "#2563EB");
-        gradient.addColorStop(1, "#4F46E5");
-
-        ctx.strokeStyle = gradient;
-        ctx.lineWidth = 3;
+        // Draw Demand Curve (Downward sloping)
+        ctx.strokeStyle = "#059669";
+        ctx.lineWidth = 2.5;
         ctx.beginPath();
-        ctx.moveTo(40, h - 30);
-        ctx.bezierCurveTo(w * 0.3, 30, w * 0.7, 30, w - 40, h - 30);
+        ctx.moveTo(40, 50);
+        ctx.bezierCurveTo(w * 0.35, 90, w * 0.65, 160, w - 30, 210);
         ctx.stroke();
 
-        // Highlight optimal point
-        const peakX = w * 0.5;
-        const peakY = 46;
+        // Draw Profit Curve (Parabolic bell)
+        ctx.strokeStyle = "#2563EB";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(40, 200);
+        ctx.bezierCurveTo(w * 0.35, 40, w * 0.65, 40, w - 30, 190);
+        ctx.stroke();
 
+        // Highlight Sweet Spot
+        const peakX = w * 0.5;
+        const peakY = 62;
         ctx.fillStyle = "#2563EB";
         ctx.beginPath();
         ctx.arc(peakX, peakY, 6, 0, Math.PI * 2);
         ctx.fill();
+        ctx.strokeStyle = "#FFFFFF";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+    }
 
+    function renderTopologySimulationChart(points, recPrice, costPrice, mrp, currPrice) {
+        const canvas = document.getElementById("topologyChart");
+        if (!canvas) return;
+        const ctx = canvas.getContext("2d");
+        const w = (canvas.width = canvas.parentElement.clientWidth || 400);
+        const h = (canvas.height = 180);
+
+        ctx.clearRect(0, 0, w, h);
+
+        // Gridlines
+        ctx.strokeStyle = "#E2E8F0";
+        ctx.lineWidth = 1;
+        for (let y = 25; y < h - 20; y += 35) {
+            ctx.beginPath();
+            ctx.moveTo(30, y);
+            ctx.lineTo(w - 20, y);
+            ctx.stroke();
+        }
+
+        if (!points || points.length === 0) return;
+
+        const profits = points.map(p => p.projected_profit_30d);
+        const minProf = Math.min(...profits);
+        const maxProf = Math.max(...profits);
+        const rangeProf = maxProf - minProf || 1;
+
+        // Draw line graph
+        ctx.strokeStyle = "#2563EB";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+
+        points.forEach((pt, i) => {
+            const x = 30 + (i / (points.length - 1)) * (w - 60);
+            const normalizedY = (pt.projected_profit_30d - minProf) / rangeProf;
+            const y = (h - 30) - normalizedY * (h - 60);
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+
+        // Highlight recommended point
+        const peakX = w * 0.5;
+        const peakY = 46;
+        ctx.fillStyle = "#2563EB";
+        ctx.beginPath();
+        ctx.arc(peakX, peakY, 6, 0, Math.PI * 2);
+        ctx.fill();
         ctx.strokeStyle = "#FFFFFF";
         ctx.lineWidth = 2;
         ctx.stroke();
@@ -875,346 +1430,19 @@ document.addEventListener("DOMContentLoaded", () => {
         // Label
         ctx.fillStyle = "#0F172A";
         ctx.font = "bold 11px JetBrains Mono";
-        ctx.fillText(`₹${Math.round(optPrice)}`, peakX - 24, peakY - 10);
+        ctx.fillText(`Optimal ₹${Math.round(recPrice)}`, peakX - 35, peakY - 12);
     }
 
-    function floatVal(v) {
-        const parsed = parseFloat(v);
-        return isNaN(parsed) ? 100 : parsed;
-    }
-
-    // =========================================================================
-    // 9. VIEW 3: REPRICE ACTION QUEUE
-    // =========================================================================
-    let queueInitialized = false;
-
-    function initQueue() {
-        if (!queueInitialized) {
-            buildFullQueue();
-            setupQueueControls();
-            queueInitialized = true;
-        }
-    }
-
-    const QUEUE_ITEMS = [
-        { id: 1, name: "OnePlus 12R 5G 16GB/256GB", cat: "Electronics", runway: "12d", cost: 32000, market: 38990, rec: 40490, lift: "+₹4.2L", conf: "94%" },
-        { id: 2, name: "Wireless Noise Cancelling Headphones", cat: "Electronics", runway: "4d", cost: 2500, market: 4150, rec: 4599, lift: "+₹38K", conf: "91%" },
-        { id: 3, name: "Royal Premium Basmati Rice 5kg", cat: "Grocery", runway: "38d", cost: 570, market: 650, rec: 685, lift: "+₹14K", conf: "89%" },
-        { id: 4, name: "Refined Sunflower Cooking Oil 5L", cat: "Grocery", runway: "3.2d", cost: 712, market: 840, rec: 890, lift: "+₹22K", conf: "96%" },
-        { id: 5, name: "Handcrafted Bandhani Festive Kurta", cat: "Fashion", runway: "18d", cost: 494, market: 1350, rec: 1449, lift: "+₹65K", conf: "95%" },
-        { id: 6, name: "Surat Art Silk Embroidered Saree", cat: "Fashion", runway: "14d", cost: 1050, market: 2200, rec: 2449, lift: "+₹84K", conf: "92%" },
-        { id: 7, name: "Hard Anodised 3L Pressure Cooker", cat: "Home & Kitchen", runway: "45d", cost: 1025, market: 1650, rec: 1580, lift: "+15% Vol", conf: "88%" },
-        { id: 8, name: "Sunscreen Gel SPF 50 PA++++ 50g", cat: "Personal Care", runway: "22d", cost: 264, market: 520, rec: 569, lift: "+₹18K", conf: "93%" },
-        { id: 9, name: "Braided 65W Type-C Fast Cable 2m", cat: "Mobile Accessories", runway: "60d", cost: 160, market: 399, rec: 349, lift: "+28% Vol", conf: "87%" },
-        { id: 10, name: "Men Lightweight Running Shoes Mesh", cat: "Footwear", runway: "30d", cost: 760, market: 1699, rec: 1799, lift: "+₹25K", conf: "90%" },
-        { id: 11, name: "Anti-Skid TPE Yoga Mat 6mm", cat: "Sports & Fitness", runway: "25d", cost: 520, market: 1099, rec: 1199, lift: "+₹12K", conf: "91%" }
-    ];
-
-    function buildFullQueue(filterCat = "all") {
-        const body = document.getElementById("queueTableBody");
-        if (!body) return;
-        body.innerHTML = "";
-
-        const list = filterCat === "all" ? QUEUE_ITEMS : QUEUE_ITEMS.filter(i => i.cat === filterCat);
-        const countPill = document.getElementById("queuePendingCount");
-        if (countPill) countPill.textContent = list.length;
-
-        list.forEach(item => {
-            const tr = document.createElement("tr");
-            tr.innerHTML = `
-                <td><input type="checkbox" class="queue-checkbox row-select" checked></td>
-                <td>
-                    <span class="table-product-name">${item.name}</span>
-                    <span class="table-product-sku">Hub: ${activeCity}</span>
-                </td>
-                <td><span class="feat-tag feat-pricing">${item.cat}</span></td>
-                <td class="mono-num">${item.runway}</td>
-                <td class="mono-num">₹${item.cost.toLocaleString("en-IN")}</td>
-                <td class="mono-num">₹${item.market.toLocaleString("en-IN")}</td>
-                <td class="mono-num price-up" style="font-weight:700;">₹${item.rec.toLocaleString("en-IN")}</td>
-                <td class="mono-num price-up" style="font-weight:700;">${item.lift}</td>
-                <td><span class="feat-tag feat-macro">${item.conf}</span></td>
-                <td>
-                    <button class="table-approve-btn" onclick="this.textContent='Approved';this.disabled=true;this.style.background='var(--emerald-bg)';this.style.color='var(--emerald)';">Approve</button>
-                </td>
-            `;
-            body.appendChild(tr);
-        });
-    }
-
-    function setupQueueControls() {
-        const filterChips = document.querySelectorAll(".queue-filter-chips .filter-chip");
-        filterChips.forEach(chip => {
-            chip.addEventListener("click", () => {
-                filterChips.forEach(c => c.classList.remove("active"));
-                chip.classList.add("active");
-                buildFullQueue(chip.dataset.filter);
-            });
-        });
-
-        const selectAll = document.getElementById("queueSelectAll");
-        if (selectAll) {
-            selectAll.addEventListener("change", () => {
-                document.querySelectorAll(".row-select").forEach(cb => cb.checked = selectAll.checked);
-            });
-        }
-
-        const approveSelBtn = document.getElementById("queueApproveSelBtn");
-        if (approveSelBtn) {
-            approveSelBtn.addEventListener("click", () => {
-                const selected = document.querySelectorAll(".row-select:checked");
-                selected.forEach(cb => {
-                    const row = cb.closest("tr");
-                    const btn = row.querySelector(".table-approve-btn");
-                    if (btn) {
-                        btn.textContent = "Approved";
-                        btn.disabled = true;
-                        btn.style.background = "var(--emerald-bg)";
-                        btn.style.color = "var(--emerald)";
-                    }
-                });
-                showToast(`Approved ${selected.length} selected price adjustments!`);
-            });
-        }
-
-        const rejectAllBtn = document.getElementById("queueRejectAllBtn");
-        if (rejectAllBtn) {
-            rejectAllBtn.addEventListener("click", () => {
-                showToast("Rejected pending adjustments. Prices held at current baseline.");
-            });
-        }
-
-        const autoPilot = document.getElementById("autoPilotToggle");
-        if (autoPilot) {
-            autoPilot.addEventListener("change", () => {
-                showToast(autoPilot.checked ? "Auto-Pilot Mode ENABLED — High-confidence recommendations auto-approved" : "Auto-Pilot Mode DISABLED — Manual approval required");
-            });
-        }
-    }
-
-    // =========================================================================
-    // 10. VIEW 4: COMPETITOR SURVEILLANCE & HYPERLOCAL RADAR
-    // =========================================================================
-    let radarInitialized = false;
-
-    function initRadar() {
-        if (!radarInitialized) {
-            setupRadarCityTabs();
-            renderRadarMap();
-            populateRadarZoneCards();
-            startLiveScrapeTicker();
-            radarInitialized = true;
-        }
-    }
-
-    const GUJARAT_ZONES = {
-        Ahmedabad: [
-            { id: "ahm-sat", name: "Satellite & Bodakdev", delta: "+3.2%", pressure: "High Premium", skus: 340, dominant: "Reliance Digital / Croma" },
-            { id: "ahm-sg", name: "SG Highway & Prahlad Nagar", delta: "-1.8%", pressure: "Competitive", skus: 480, dominant: "Blinkit Dark Hub" },
-            { id: "ahm-nav", name: "Navrangpura & CG Road", delta: "+1.2%", pressure: "Balanced", skus: 290, dominant: "Vijay Sales" },
-            { id: "ahm-mani", name: "Maninagar & Kankaria", delta: "-2.4%", pressure: "DMart Pressure", skus: 310, dominant: "DMart Hypermarket" },
-            { id: "ahm-vast", name: "Vastrapur & Drive-In", delta: "+2.1%", pressure: "Premium Retail", skus: 260, dominant: "AlphaOne Malls" }
-        ],
-        Surat: [
-            { id: "sur-adaj", name: "Adajan & Pal", delta: "-1.5%", pressure: "Competitive Grocery", skus: 380, dominant: "DMart Adajan" },
-            { id: "sur-vesu", name: "Vesu & VIP Road", delta: "+4.2%", pressure: "Luxury Margin", skus: 420, dominant: "VR Surat Cluster" },
-            { id: "sur-var", name: "Varachha & Katargam", delta: "+0.8%", pressure: "Q-Commerce Surge", skus: 290, dominant: "Zepto Quick Store" },
-            { id: "sur-ring", name: "Ring Road & Textile Market", delta: "-3.1%", pressure: "Wholesale Apparel", skus: 510, dominant: "Surat Saree B2B" },
-            { id: "sur-athwa", name: "Athwa Lines & Piplod", delta: "+2.9%", pressure: "High Street", skus: 310, dominant: "Reliance Smart Point" }
-        ]
-    };
-
-    function setupRadarCityTabs() {
-        const tabAhm = document.getElementById("tabRadarAhmedabad");
-        const tabSur = document.getElementById("tabRadarSurat");
-
-        if (tabAhm) {
-            tabAhm.addEventListener("click", () => {
-                activeRadarMap = "Ahmedabad";
-                updateRadarCityTabs();
-                renderRadarMap();
-                populateRadarZoneCards();
-            });
-        }
-
-        if (tabSur) {
-            tabSur.addEventListener("click", () => {
-                activeRadarMap = "Surat";
-                updateRadarCityTabs();
-                renderRadarMap();
-                populateRadarZoneCards();
-            });
-        }
-    }
-
-    function updateRadarCityTabs() {
-        const tabAhm = document.getElementById("tabRadarAhmedabad");
-        const tabSur = document.getElementById("tabRadarSurat");
-        if (tabAhm) tabAhm.classList.toggle("active", activeRadarMap === "Ahmedabad");
-        if (tabSur) tabSur.classList.toggle("active", activeRadarMap === "Surat");
-
-        const sub = document.getElementById("radarMapSub");
-        if (sub) sub.textContent = `Interactive ${activeRadarMap} neighborhood price pressure map`;
-    }
-
-    function populateRadarZoneCards() {
-        const container = document.getElementById("radarZoneCards");
-        if (!container) return;
-        container.innerHTML = "";
-
-        const zones = GUJARAT_ZONES[activeRadarMap] || GUJARAT_ZONES.Ahmedabad;
-        zones.forEach((z, idx) => {
-            const card = document.createElement("div");
-            card.className = "radar-zone-card" + (idx === 0 ? " active" : "");
-            const colorClass = z.delta.startsWith("+") ? "price-up" : "price-down";
-            card.innerHTML = `
-                <div class="zone-card-header">
-                    <span class="zone-name">${z.name}</span>
-                    <span class="zone-delta ${colorClass}">${z.delta}</span>
-                </div>
-                <div class="zone-meta">${z.pressure} • ${z.skus} SKUs</div>
-                <div class="zone-meta" style="color:var(--text-primary);font-weight:600;margin-top:2px;">${z.dominant}</div>
-            `;
-            card.addEventListener("click", () => {
-                document.querySelectorAll(".radar-zone-card").forEach(c => c.classList.remove("active"));
-                card.classList.add("active");
-                showToast(`Focused on ${z.name} zone in ${activeRadarMap}`);
-            });
-            container.appendChild(card);
-        });
-    }
-
-    function renderRadarMap() {
-        const canvas = document.getElementById("heatmapCanvas");
+    function renderRevenueTrajectoryChart(trajectory, hasActual, projectedRevenue) {
+        const canvas = document.getElementById("revenueTrajectoryChart");
         if (!canvas) return;
         const ctx = canvas.getContext("2d");
-        const w = (canvas.width = canvas.parentElement.clientWidth);
-        const h = (canvas.height = 280);
-
-        ctx.clearRect(0, 0, w, h);
-
-        // Dark radar background
-        ctx.fillStyle = "#0F172A";
-        ctx.fillRect(0, 0, w, h);
-
-        // Concentric radar circles
-        const cx = w / 2;
-        const cy = h / 2;
-        ctx.strokeStyle = "rgba(59, 130, 246, 0.25)";
-        ctx.lineWidth = 1;
-
-        [40, 80, 120, 160].forEach(r => {
-            ctx.beginPath();
-            ctx.arc(cx, cy, r, 0, Math.PI * 2);
-            ctx.stroke();
-        });
-
-        // Crosshairs
-        ctx.beginPath();
-        ctx.moveTo(cx, 0);
-        ctx.lineTo(cx, h);
-        ctx.moveTo(0, cy);
-        ctx.lineTo(w, cy);
-        ctx.stroke();
-
-        // City specific pins
-        const pins = activeRadarMap === "Ahmedabad" ? [
-            { x: cx - 60, y: cy - 40, name: "Satellite", col: "#10B981", tag: "Croma (+3%)" },
-            { x: cx + 70, y: cy - 20, name: "SG Highway", col: "#EF4444", tag: "Blinkit (-2%)" },
-            { x: cx + 10, y: cy + 50, name: "Navrangpura", col: "#3B82F6", tag: "Reliance (+1%)" },
-            { x: cx - 90, y: cy + 30, name: "Maninagar", col: "#F59E0B", tag: "DMart (-2%)" },
-            { x: cx - 20, y: cy - 70, name: "Vastrapur", col: "#10B981", tag: "AlphaOne (+2%)" }
-        ] : [
-            { x: cx - 70, y: cy - 30, name: "Adajan", col: "#EF4444", tag: "DMart (-1.5%)" },
-            { x: cx + 80, y: cy + 40, name: "Vesu", col: "#10B981", tag: "VR Mall (+4.2%)" },
-            { x: cx + 20, y: cy - 60, name: "Varachha", col: "#3B82F6", tag: "Zepto (+0.8%)" },
-            { x: cx - 40, y: cy + 60, name: "Ring Road", col: "#EF4444", tag: "Textile (-3.1%)" },
-            { x: cx + 60, y: cy - 20, name: "Athwa", col: "#10B981", tag: "Reliance (+2.9%)" }
-        ];
-
-        // Draw Heat Glows around pins
-        pins.forEach(p => {
-            const radGrad = ctx.createRadialGradient(p.x, p.y, 2, p.x, p.y, 45);
-            radGrad.addColorStop(0, p.col + "66");
-            radGrad.addColorStop(1, "transparent");
-            ctx.fillStyle = radGrad;
-            ctx.beginPath();
-            ctx.arc(p.x, p.y, 45, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Core pin
-            ctx.fillStyle = p.col;
-            ctx.beginPath();
-            ctx.arc(p.x, p.y, 5, 0, Math.PI * 2);
-            ctx.fill();
-
-            ctx.strokeStyle = "#FFFFFF";
-            ctx.lineWidth = 1.5;
-            ctx.stroke();
-
-            // Label
-            ctx.fillStyle = "#F8FAFC";
-            ctx.font = "bold 10px Plus Jakarta Sans";
-            ctx.fillText(p.name, p.x + 8, p.y - 4);
-
-            ctx.fillStyle = "#94A3B8";
-            ctx.font = "9px JetBrains Mono";
-            ctx.fillText(p.tag, p.x + 8, p.y + 8);
-        });
-    }
-
-    function startLiveScrapeTicker() {
-        const list = document.getElementById("tickerList");
-        if (!list) return;
-
-        const events = [
-            { item: "OnePlus 12R 5G", source: "Amazon.in", delta: "₹38,990 (↓ ₹500)", time: "Just now" },
-            { item: "Fortune Sunlite Oil 1L", source: "DMart Gujarat", delta: "₹162 (↓ ₹3.00)", time: "2m ago" },
-            { item: "Basmati Rice 5kg", source: "Reliance Smart", delta: "₹675 (↑ ₹15.00)", time: "5m ago" },
-            { item: "Noise ANC Earbuds", source: "Flipkart", delta: "₹2,899 (Match)", time: "7m ago" },
-            { item: "Bandhani Silk Kurta", source: "Myntra", delta: "₹1,399 (↑ ₹50.00)", time: "11m ago" }
-        ];
-
-        list.innerHTML = "";
-        events.forEach(e => {
-            const div = document.createElement("div");
-            div.className = "ticker-item";
-            div.innerHTML = `
-                <div class="ticker-item-top">
-                    <span class="ticker-product">${e.item}</span>
-                    <span class="ticker-time">${e.time}</span>
-                </div>
-                <div class="ticker-item-bottom">
-                    <span class="ticker-source">${e.source} (${activeCity})</span>
-                    <span class="ticker-price-change price-up">${e.delta}</span>
-                </div>
-            `;
-            list.appendChild(div);
-        });
-    }
-
-    // =========================================================================
-    // 11. VIEW 5: REVENUE ANALYTICS
-    // =========================================================================
-    let analyticsInitialized = false;
-
-    function initAnalytics() {
-        if (!analyticsInitialized) {
-            renderRevenueTrajectoryChart();
-            analyticsInitialized = true;
-        }
-    }
-
-    function renderRevenueTrajectoryChart() {
-        const canvas = document.getElementById("revenueChart");
-        if (!canvas) return;
-        const ctx = canvas.getContext("2d");
-        const w = (canvas.width = canvas.parentElement.clientWidth);
+        const w = (canvas.width = canvas.parentElement.clientWidth || 400);
         const h = (canvas.height = 260);
 
         ctx.clearRect(0, 0, w, h);
 
-        // Grid
+        // Gridlines
         ctx.strokeStyle = "#E2E8F0";
         ctx.lineWidth = 1;
         for (let y = 30; y < h - 20; y += 45) {
@@ -1224,167 +1452,85 @@ document.addEventListener("DOMContentLoaded", () => {
             ctx.stroke();
         }
 
-        // Static Baseline (Grey dashed)
-        ctx.setLineDash([5, 5]);
-        ctx.strokeStyle = "#94A3B8";
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(40, 190);
-        ctx.lineTo(w * 0.25, 175);
-        ctx.lineTo(w * 0.5, 160);
-        ctx.lineTo(w * 0.75, 150);
-        ctx.lineTo(w - 30, 140);
-        ctx.stroke();
-        ctx.setLineDash([]);
+        if (!hasActual || !trajectory || trajectory.length === 0) {
+            // Informative empty state text on canvas
+            ctx.fillStyle = "#94A3B8";
+            ctx.font = "600 13px Plus Jakarta Sans";
+            ctx.textAlign = "center";
+            ctx.fillText("Revenue trajectory will appear after sales history is logged.", w / 2, h / 2 - 10);
+            ctx.font = "400 11px Plus Jakarta Sans";
+            ctx.fillText("Click '+ Log Actual Sales' above to add your actual sales data.", w / 2, h / 2 + 12);
+            ctx.textAlign = "left";
+            return;
+        }
 
-        // Dynamic Optimized Revenue (Solid Blue)
+        // Draw Actual Revenue Curve (Solid Emerald)
+        ctx.strokeStyle = "#059669";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        trajectory.forEach((t, idx) => {
+            const x = 40 + (idx / Math.max(trajectory.length - 1, 1)) * (w * 0.7 - 40);
+            const y = h - 60 - (idx * 25);
+            if (idx === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+
+        // Draw Projected Continuation (Dashed Blue)
+        ctx.setLineDash([5, 5]);
         ctx.strokeStyle = "#2563EB";
         ctx.lineWidth = 3;
         ctx.beginPath();
-        ctx.moveTo(40, 185);
-        ctx.lineTo(w * 0.25, 150);
-        ctx.lineTo(w * 0.5, 115);
-        ctx.lineTo(w * 0.75, 85);
-        ctx.lineTo(w - 30, 50);
+        const lastX = w * 0.7;
+        const lastY = h - 60 - ((trajectory.length - 1) * 25);
+        ctx.moveTo(lastX, lastY);
+        ctx.lineTo(w - 30, 45);
         ctx.stroke();
-
-        // Fill area under curve
-        const areaGrad = ctx.createLinearGradient(0, 50, 0, 200);
-        areaGrad.addColorStop(0, "rgba(37, 99, 235, 0.15)");
-        areaGrad.addColorStop(1, "rgba(37, 99, 235, 0.0)");
-        ctx.fillStyle = areaGrad;
-        ctx.lineTo(w - 30, h - 20);
-        ctx.lineTo(40, h - 20);
-        ctx.closePath();
-        ctx.fill();
+        ctx.setLineDash([]);
     }
 
     // =========================================================================
-    // 12. VIEW 6: RULE ENGINE
+    // 13. MODAL HANDLERS & DIAGNOSTICS
     // =========================================================================
-    function initRules() {
-        const toggles = [
-            { id: "ruleToggleMarginFloor", name: "Guaranteed Margin Floor Shield" },
-            { id: "ruleToggleCorridor", name: "Anti-Price War Corridor" },
-            { id: "ruleToggleFestival", name: "Regional Festival Surge Multiplier" },
-            { id: "ruleToggleStockout", name: "Stockout Scarcity Premium" }
-        ];
+    function openModal(el) { if (el) el.style.display = "flex"; }
+    function closeModal(el) { if (el) el.style.display = "none"; }
 
-        toggles.forEach(t => {
-            const el = document.getElementById(t.id);
-            if (el && !el._wired) {
-                el._wired = true;
-                el.addEventListener("change", () => {
-                    showToast(`${t.name} ${el.checked ? "ENABLED" : "PAUSED"}`);
-                });
-            }
-        });
-    }
-
-    // =========================================================================
-    // 13. SETTINGS & SUPPORT MODALS
-    // =========================================================================
-    function openModal(modalEl) {
-        if (!modalEl) return;
-        modalEl.style.display = "flex";
-    }
-
-    function closeModal(modalEl) {
-        if (!modalEl) return;
-        modalEl.style.display = "none";
-    }
-
-    // Wiring Settings Modal triggers
     const settingsTriggers = [
         document.getElementById("sidebarSettingsBtn"),
         document.getElementById("headerSettingsBtn"),
         document.getElementById("footerLinkSettings")
     ];
-
     settingsTriggers.forEach(btn => {
         if (btn) btn.addEventListener("click", () => openModal(settingsModal));
     });
 
-    const closeSettingsBtn = document.getElementById("closeSettingsModal");
-    if (closeSettingsBtn) closeSettingsBtn.addEventListener("click", () => closeModal(settingsModal));
+    const closeSettingsModal = document.getElementById("closeSettingsModal");
+    const btnCancelSettings = document.getElementById("btnCancelSettings");
+    if (closeSettingsModal) closeSettingsModal.addEventListener("click", () => closeModal(settingsModal));
+    if (btnCancelSettings) btnCancelSettings.addEventListener("click", () => closeModal(settingsModal));
 
-    // Wiring Support & Diagnostics triggers
     const supportTriggers = [
         document.getElementById("sidebarSupportBtn"),
         document.getElementById("headerSupportBtn"),
-        document.getElementById("engineStatusBtn"),
-        document.getElementById("footerLinkDocs"),
-        document.getElementById("footerLinkHealth")
+        document.getElementById("footerLinkDocs")
     ];
-
     supportTriggers.forEach(btn => {
         if (btn) btn.addEventListener("click", () => openModal(supportModal));
     });
 
-    const closeSupportBtn = document.getElementById("closeSupportModal");
-    if (closeSupportBtn) closeSupportBtn.addEventListener("click", () => closeModal(supportModal));
+    const closeSupportModal = document.getElementById("closeSupportModal");
     const btnCloseSupport = document.getElementById("btnCloseSupport");
+    if (closeSupportModal) closeSupportModal.addEventListener("click", () => closeModal(supportModal));
     if (btnCloseSupport) btnCloseSupport.addEventListener("click", () => closeModal(supportModal));
 
-    // Close on backdrop click
-    [settingsModal, supportModal].forEach(modal => {
-        if (modal) {
-            modal.addEventListener("click", (e) => {
-                if (e.target === modal) closeModal(modal);
-            });
-        }
-    });
-
-    // Close on ESC
+    // ESC to close modals
     document.addEventListener("keydown", (e) => {
         if (e.key === "Escape") {
-            closeModal(settingsModal);
-            closeModal(supportModal);
+            [settingsModal, supportModal, logSalesModal].forEach(m => closeModal(m));
         }
     });
 
-    // Save Settings
-    const btnSaveSettings = document.getElementById("btnSaveSettings");
-    if (btnSaveSettings) {
-        btnSaveSettings.addEventListener("click", () => {
-            const floor = document.getElementById("settingMarginFloor")?.value || "5.5";
-            const corMin = document.getElementById("settingCorridorMin")?.value || "-15";
-            const corMax = document.getElementById("settingCorridorMax")?.value || "10";
-            const maxDisc = document.getElementById("settingMaxDiscount")?.value || "40";
-            const apiBase = document.getElementById("settingApiBase")?.value || "";
-
-            localStorage.setItem("aura_margin_floor", floor);
-            localStorage.setItem("aura_corridor_min", corMin);
-            localStorage.setItem("aura_corridor_max", corMax);
-            localStorage.setItem("aura_max_discount", maxDisc);
-            localStorage.setItem("aura_api_base", apiBase);
-
-            engineSettings = {
-                marginFloor: parseFloat(floor),
-                corridorMin: parseFloat(corMin),
-                corridorMax: parseFloat(corMax),
-                maxDiscount: parseFloat(maxDisc),
-                apiBase: apiBase
-            };
-
-            closeModal(settingsModal);
-            showToast("Guardrail settings updated and saved to local storage!");
-        });
-    }
-
-    const btnResetSettings = document.getElementById("btnResetSettings");
-    if (btnResetSettings) {
-        btnResetSettings.addEventListener("click", () => {
-            document.getElementById("settingMarginFloor").value = "5.5";
-            document.getElementById("settingCorridorMin").value = "-15";
-            document.getElementById("settingCorridorMax").value = "10";
-            document.getElementById("settingMaxDiscount").value = "40";
-            document.getElementById("settingApiBase").value = "";
-            showToast("Reset form to production baseline guardrails");
-        });
-    }
-
-    // Benchmark Latency
+    // Latency Benchmark
     const btnRunLatency = document.getElementById("btnRunLatencyTest");
     if (btnRunLatency) {
         btnRunLatency.addEventListener("click", async () => {
@@ -1394,55 +1540,43 @@ document.addEventListener("DOMContentLoaded", () => {
             const healthLabel = document.getElementById("healthLatencyVal");
             const predictLabel = document.getElementById("predictLatencyVal");
 
-            // 1. Health
+            // 1. Health check
             const t0 = performance.now();
             try {
-                const hResp = await fetch(`${API_BASE}/health`);
+                const hResp = await fetch("/health");
                 const t1 = performance.now();
-                if (healthLabel) healthLabel.textContent = `${Math.round(t1 - t0)} ms (${hResp.status === 200 ? "OK" : "Err"})`;
+                if (healthLabel) healthLabel.textContent = `${Math.round(t1 - t0)} ms (${hResp.status === 200 ? 'OK' : 'Err'})`;
             } catch {
-                if (healthLabel) healthLabel.textContent = "Local Mock (< 1ms)";
+                if (healthLabel) healthLabel.textContent = "Error";
             }
 
-            // 2. Predict
+            // 2. Predict inference
             const p0 = performance.now();
             try {
-                const pResp = await fetch(`${API_BASE}/predict`, {
+                const pResp = await fetch("/predict", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
                         product_id: "PING",
-                        product_name: "Ping",
-                        category: "Electronics",
-                        city: "Ahmedabad",
                         cost_price: 1000,
                         current_price: 1500,
-                        mrp: 2000,
-                        competitor_avg_price: 1450
+                        mrp: 2000
                     })
                 });
                 const p1 = performance.now();
                 if (predictLabel) predictLabel.textContent = `${Math.round(p1 - p0)} ms (Sub-5ms Inference)`;
             } catch {
-                if (predictLabel) predictLabel.textContent = "Mock Latency (3.2 ms)";
+                if (predictLabel) predictLabel.textContent = "Error";
             }
 
             btnRunLatency.disabled = false;
-            btnRunLatency.innerHTML = `<span class="material-symbols-outlined">speed</span><span>Run Latency Test</span>`;
-            showToast("Diagnostics benchmark completed successfully!");
-        });
-    }
-
-    // Header Batch Reprice Button
-    const batchRepriceBtn = document.getElementById("batchRepriceBtn");
-    if (batchRepriceBtn) {
-        batchRepriceBtn.addEventListener("click", () => {
-            showToast(`Batch reprice executed across all 130 SKUs in ${activeCity}!`);
+            btnRunLatency.innerHTML = '<span class="material-symbols-outlined">speed</span><span>Run Latency Test</span>';
+            showToast("Diagnostics benchmark completed!");
         });
     }
 
     // =========================================================================
-    // 14. INITIALIZE APP
+    // 14. BOOTSTRAP APP
     // =========================================================================
-    initOverview();
+    checkAuthSession();
 });
