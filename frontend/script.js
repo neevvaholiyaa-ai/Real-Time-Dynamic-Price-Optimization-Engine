@@ -107,11 +107,15 @@ document.addEventListener("DOMContentLoaded", () => {
     // 4. AUTHENTICATION CONTROLLER
     // =========================================================================
     function showAuthScreen() {
+        document.body.style.backgroundColor = "#0F172A";
+        document.body.style.color = "#F8FAFC";
         if (authOverlay) authOverlay.style.display = "flex";
         if (appShell) appShell.style.display = "none";
     }
 
     function showAppScreen() {
+        document.body.style.backgroundColor = "#F1F5F9";
+        document.body.style.color = "#0F172A";
         if (authOverlay) authOverlay.style.display = "none";
         if (appShell) appShell.style.display = "flex";
         if (appState.user) {
@@ -1327,167 +1331,367 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // =========================================================================
-    // 12. CHARTS (Data-Driven Canvas Rendering)
+    // 12. CHARTS (High-DPI Data-Driven Canvas Rendering Engine)
     // =========================================================================
+    function setupHiDPICanvas(canvas, desiredHeight) {
+        if (!canvas) return null;
+        const rect = canvas.parentElement.getBoundingClientRect();
+        const w = rect.width > 0 ? rect.width : 400;
+        const h = desiredHeight || 240;
+        const dpr = window.devicePixelRatio || 1;
+
+        canvas.width = Math.floor(w * dpr);
+        canvas.height = Math.floor(h * dpr);
+        canvas.style.width = `${w}px`;
+        canvas.style.height = `${h}px`;
+
+        const ctx = canvas.getContext("2d");
+        ctx.scale(dpr, dpr);
+        return { ctx, w, h };
+    }
+
+    function drawRoundedBadge(ctx, x, y, text, bgColor, textColor, borderColor) {
+        ctx.font = "bold 10px 'JetBrains Mono', monospace";
+        const textWidth = ctx.measureText(text).width;
+        const padX = 8;
+        const padY = 4;
+        const badgeW = textWidth + padX * 2;
+        const badgeH = 18;
+        const rx = Math.max(4, Math.min(x - badgeW / 2, ctx.canvas.width / (window.devicePixelRatio || 1) - badgeW - 6));
+        const ry = y - badgeH / 2;
+
+        ctx.fillStyle = bgColor || "#1E293B";
+        ctx.strokeStyle = borderColor || "rgba(255, 255, 255, 0.15)";
+        ctx.lineWidth = 1;
+
+        // Draw rounded rectangle
+        ctx.beginPath();
+        ctx.roundRect(rx, ry, badgeW, badgeH, 4);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = textColor || "#FFFFFF";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(text, rx + badgeW / 2, ry + badgeH / 2);
+    }
+
     function renderProfitFrontierChart() {
         const canvas = document.getElementById("profitFrontierChart");
-        if (!canvas) return;
-        const ctx = canvas.getContext("2d");
-        const w = (canvas.width = canvas.parentElement.clientWidth || 400);
-        const h = (canvas.height = 240);
+        const setup = setupHiDPICanvas(canvas, 240);
+        if (!setup) return;
+        const { ctx, w, h } = setup;
 
         ctx.clearRect(0, 0, w, h);
 
-        // Gridlines
-        ctx.strokeStyle = "#E2E8F0";
+        const padLeft = 45;
+        const padRight = 30;
+        const padTop = 30;
+        const padBottom = 40;
+        const plotW = w - padLeft - padRight;
+        const plotH = h - padTop - padBottom;
+
+        // Subtle background grid
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.05)";
         ctx.lineWidth = 1;
-        for (let y = 30; y < h - 20; y += 40) {
+        for (let y = padTop; y <= h - padBottom; y += plotH / 4) {
             ctx.beginPath();
-            ctx.moveTo(30, y);
-            ctx.lineTo(w - 20, y);
+            ctx.moveTo(padLeft, y);
+            ctx.lineTo(w - padRight, y);
             ctx.stroke();
         }
 
-        // Draw Demand Curve (Downward sloping)
-        ctx.strokeStyle = "#059669";
+        // Draw Profit Curve Area Fill (Gradient)
+        const gradProfit = ctx.createLinearGradient(0, padTop, 0, h - padBottom);
+        gradProfit.addColorStop(0, "rgba(59, 130, 246, 0.25)");
+        gradProfit.addColorStop(1, "rgba(59, 130, 246, 0.0)");
+
+        ctx.fillStyle = gradProfit;
+        ctx.beginPath();
+        ctx.moveTo(padLeft, h - padBottom);
+        ctx.bezierCurveTo(
+            padLeft + plotW * 0.3, padTop - 10,
+            padLeft + plotW * 0.7, padTop - 10,
+            padLeft + plotW, h - padBottom
+        );
+        ctx.lineTo(padLeft + plotW, h - padBottom);
+        ctx.closePath();
+        ctx.fill();
+
+        // Draw Demand Curve (Downward sloping emerald)
+        ctx.strokeStyle = "#10B981";
         ctx.lineWidth = 2.5;
         ctx.beginPath();
-        ctx.moveTo(40, 50);
-        ctx.bezierCurveTo(w * 0.35, 90, w * 0.65, 160, w - 30, 210);
+        ctx.moveTo(padLeft, padTop + 20);
+        ctx.bezierCurveTo(
+            padLeft + plotW * 0.35, padTop + plotH * 0.35,
+            padLeft + plotW * 0.65, padTop + plotH * 0.7,
+            padLeft + plotW, h - padBottom - 10
+        );
         ctx.stroke();
 
-        // Draw Profit Curve (Parabolic bell)
-        ctx.strokeStyle = "#2563EB";
+        // Draw Profit Curve Stroke (Royal blue glow)
+        ctx.strokeStyle = "#3B82F6";
         ctx.lineWidth = 3;
+        ctx.shadowColor = "rgba(59, 130, 246, 0.5)";
+        ctx.shadowBlur = 10;
         ctx.beginPath();
-        ctx.moveTo(40, 200);
-        ctx.bezierCurveTo(w * 0.35, 40, w * 0.65, 40, w - 30, 190);
+        ctx.moveTo(padLeft, h - padBottom);
+        ctx.bezierCurveTo(
+            padLeft + plotW * 0.3, padTop - 10,
+            padLeft + plotW * 0.7, padTop - 10,
+            padLeft + plotW, h - padBottom
+        );
         ctx.stroke();
+        ctx.shadowBlur = 0; // reset shadow
 
-        // Highlight Sweet Spot
-        const peakX = w * 0.5;
-        const peakY = 62;
-        ctx.fillStyle = "#2563EB";
+        // Peak Sweet Spot Marker
+        const peakX = padLeft + plotW * 0.5;
+        const peakY = padTop + 14;
+
+        // Glowing outer circle
+        ctx.fillStyle = "rgba(59, 130, 246, 0.3)";
         ctx.beginPath();
-        ctx.arc(peakX, peakY, 6, 0, Math.PI * 2);
+        ctx.arc(peakX, peakY, 10, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Inner solid dot
+        ctx.fillStyle = "#38BDF8";
+        ctx.beginPath();
+        ctx.arc(peakX, peakY, 5, 0, Math.PI * 2);
         ctx.fill();
         ctx.strokeStyle = "#FFFFFF";
         ctx.lineWidth = 2;
         ctx.stroke();
+
+        // Label Sweet Spot
+        drawRoundedBadge(ctx, peakX, peakY - 18, "Optimal Equilibrium", "#1E293B", "#38BDF8", "rgba(56, 189, 248, 0.4)");
+
+        // Axes labels
+        ctx.fillStyle = "#64748B";
+        ctx.font = "600 11px 'Plus Jakarta Sans', sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("Price (p) →", padLeft + plotW / 2, h - 12);
     }
 
     function renderTopologySimulationChart(points, recPrice, costPrice, mrp, currPrice) {
         const canvas = document.getElementById("topologyChart");
-        if (!canvas) return;
-        const ctx = canvas.getContext("2d");
-        const w = (canvas.width = canvas.parentElement.clientWidth || 400);
-        const h = (canvas.height = 180);
+        const setup = setupHiDPICanvas(canvas, 200);
+        if (!setup) return;
+        const { ctx, w, h } = setup;
 
         ctx.clearRect(0, 0, w, h);
 
+        const padLeft = 45;
+        const padRight = 35;
+        const padTop = 45;
+        const padBottom = 35;
+        const plotW = w - padLeft - padRight;
+        const plotH = h - padTop - padBottom;
+
         // Gridlines
-        ctx.strokeStyle = "#E2E8F0";
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.05)";
         ctx.lineWidth = 1;
-        for (let y = 25; y < h - 20; y += 35) {
+        for (let y = padTop; y <= h - padBottom; y += plotH / 3) {
             ctx.beginPath();
-            ctx.moveTo(30, y);
-            ctx.lineTo(w - 20, y);
+            ctx.moveTo(padLeft, y);
+            ctx.lineTo(w - padRight, y);
             ctx.stroke();
         }
 
-        if (!points || points.length === 0) return;
+        if (!points || points.length === 0) {
+            ctx.fillStyle = "#64748B";
+            ctx.font = "600 12px 'Plus Jakarta Sans'";
+            ctx.textAlign = "center";
+            ctx.fillText("Simulation curve will render on product selection.", w / 2, h / 2);
+            return;
+        }
 
+        const prices = points.map(p => p.price);
         const profits = points.map(p => p.projected_profit_30d);
+        const minPrice = Math.min(...prices);
+        const maxPrice = Math.max(...prices);
         const minProf = Math.min(...profits);
         const maxProf = Math.max(...profits);
-        const rangeProf = maxProf - minProf || 1;
+        const priceRange = maxPrice - minPrice || 1;
+        const profRange = maxProf - minProf || 1;
 
-        // Draw line graph
-        ctx.strokeStyle = "#2563EB";
-        ctx.lineWidth = 3;
+        const getX = (price) => padLeft + ((price - minPrice) / priceRange) * plotW;
+        const getY = (prof) => (h - padBottom) - ((prof - minProf) / profRange) * (plotH - 10);
+
+        // Area Fill under Curve
+        const grad = ctx.createLinearGradient(0, padTop, 0, h - padBottom);
+        grad.addColorStop(0, "rgba(59, 130, 246, 0.25)");
+        grad.addColorStop(1, "rgba(59, 130, 246, 0.0)");
+
+        ctx.fillStyle = grad;
         ctx.beginPath();
-
         points.forEach((pt, i) => {
-            const x = 30 + (i / (points.length - 1)) * (w - 60);
-            const normalizedY = (pt.projected_profit_30d - minProf) / rangeProf;
-            const y = (h - 30) - normalizedY * (h - 60);
+            const x = getX(pt.price);
+            const y = getY(pt.projected_profit_30d);
+            if (i === 0) {
+                ctx.moveTo(x, h - padBottom);
+                ctx.lineTo(x, y);
+            } else {
+                ctx.lineTo(x, y);
+            }
+        });
+        ctx.lineTo(getX(points[points.length - 1].price), h - padBottom);
+        ctx.closePath();
+        ctx.fill();
+
+        // Stroke line
+        ctx.strokeStyle = "#3B82F6";
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        points.forEach((pt, i) => {
+            const x = getX(pt.price);
+            const y = getY(pt.projected_profit_30d);
             if (i === 0) ctx.moveTo(x, y);
             else ctx.lineTo(x, y);
         });
         ctx.stroke();
 
-        // Highlight recommended point
-        const peakX = w * 0.5;
-        const peakY = 46;
-        ctx.fillStyle = "#2563EB";
-        ctx.beginPath();
-        ctx.arc(peakX, peakY, 6, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.strokeStyle = "#FFFFFF";
-        ctx.lineWidth = 2;
-        ctx.stroke();
+        // Helper to draw vertical reference line without text collision
+        function drawRefLine(price, color, label, lineDash, badgeY, textColor, borderColor) {
+            if (price < minPrice || price > maxPrice) return;
+            const x = getX(price);
 
-        // Label
-        ctx.fillStyle = "#0F172A";
-        ctx.font = "bold 11px JetBrains Mono";
-        ctx.fillText(`Optimal ₹${Math.round(recPrice)}`, peakX - 35, peakY - 12);
+            ctx.save();
+            ctx.setLineDash(lineDash || [4, 4]);
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(x, padTop);
+            ctx.lineTo(x, h - padBottom);
+            ctx.stroke();
+            ctx.restore();
+
+            drawRoundedBadge(ctx, x, badgeY, label, "#121929", textColor || color, borderColor || color);
+        }
+
+        // Draw Reference Markers with Staggered Y offsets to NEVER overlap
+        if (costPrice) drawRefLine(costPrice, "rgba(239, 68, 68, 0.8)", `Cost ₹${Math.round(costPrice).toLocaleString('en-IN')}`, [3, 3], 16, "#F87171", "rgba(239, 68, 68, 0.4)");
+        if (currPrice) drawRefLine(currPrice, "rgba(148, 163, 184, 0.8)", `Current ₹${Math.round(currPrice).toLocaleString('en-IN')}`, [4, 4], 32, "#CBD5E1", "rgba(148, 163, 184, 0.4)");
+        if (mrp && mrp > costPrice) drawRefLine(mrp, "rgba(245, 158, 11, 0.8)", `MRP ₹${Math.round(mrp).toLocaleString('en-IN')}`, [3, 3], 16, "#FBBF24", "rgba(245, 158, 11, 0.4)");
+
+        // Highlight Recommended Peak Price
+        if (recPrice) {
+            const recX = getX(recPrice);
+            const recY = getY(maxProf);
+
+            // Glowing indicator
+            ctx.fillStyle = "rgba(56, 189, 248, 0.35)";
+            ctx.beginPath();
+            ctx.arc(recX, recY, 9, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = "#38BDF8";
+            ctx.beginPath();
+            ctx.arc(recX, recY, 4.5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = "#FFFFFF";
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            drawRoundedBadge(ctx, recX, 16, `AI Rec ₹${Math.round(recPrice).toLocaleString('en-IN')}`, "#1E293B", "#38BDF8", "rgba(56, 189, 248, 0.6)");
+        }
     }
 
     function renderRevenueTrajectoryChart(trajectory, hasActual, projectedRevenue) {
         const canvas = document.getElementById("revenueTrajectoryChart");
-        if (!canvas) return;
-        const ctx = canvas.getContext("2d");
-        const w = (canvas.width = canvas.parentElement.clientWidth || 400);
-        const h = (canvas.height = 260);
+        const setup = setupHiDPICanvas(canvas, 250);
+        if (!setup) return;
+        const { ctx, w, h } = setup;
 
         ctx.clearRect(0, 0, w, h);
 
+        const padLeft = 55;
+        const padRight = 35;
+        const padTop = 30;
+        const padBottom = 40;
+        const plotW = w - padLeft - padRight;
+        const plotH = h - padTop - padBottom;
+
         // Gridlines
-        ctx.strokeStyle = "#E2E8F0";
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.05)";
         ctx.lineWidth = 1;
-        for (let y = 30; y < h - 20; y += 45) {
+        for (let y = padTop; y <= h - padBottom; y += plotH / 4) {
             ctx.beginPath();
-            ctx.moveTo(30, y);
-            ctx.lineTo(w - 20, y);
+            ctx.moveTo(padLeft, y);
+            ctx.lineTo(w - padRight, y);
             ctx.stroke();
         }
 
         if (!hasActual || !trajectory || trajectory.length === 0) {
-            // Informative empty state text on canvas
             ctx.fillStyle = "#94A3B8";
-            ctx.font = "600 13px Plus Jakarta Sans";
+            ctx.font = "600 13px 'Plus Jakarta Sans'";
             ctx.textAlign = "center";
-            ctx.fillText("Revenue trajectory will appear after sales history is logged.", w / 2, h / 2 - 10);
-            ctx.font = "400 11px Plus Jakarta Sans";
-            ctx.fillText("Click '+ Log Actual Sales' above to add your actual sales data.", w / 2, h / 2 + 12);
-            ctx.textAlign = "left";
+            ctx.fillText("Revenue trajectory will appear after sales history is logged.", w / 2, h / 2 - 8);
+            ctx.font = "400 11px 'Plus Jakarta Sans'";
+            ctx.fillStyle = "#64748B";
+            ctx.fillText("Click '+ Log Actual Sales' above to add your actual sales data.", w / 2, h / 2 + 14);
             return;
         }
 
-        // Draw Actual Revenue Curve (Solid Emerald)
-        ctx.strokeStyle = "#059669";
+        const revs = trajectory.map(t => t.realized_revenue);
+        const maxRev = Math.max(...revs, projectedRevenue || 0, 1000);
+        const getX = (idx, total) => padLeft + (idx / Math.max(total - 1, 1)) * (plotW * 0.65);
+        const getY = (val) => (h - padBottom) - (val / maxRev) * plotH;
+
+        // Actual Revenue Area Fill
+        const grad = ctx.createLinearGradient(0, padTop, 0, h - padBottom);
+        grad.addColorStop(0, "rgba(16, 185, 129, 0.25)");
+        grad.addColorStop(1, "rgba(16, 185, 129, 0.0)");
+
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        trajectory.forEach((t, idx) => {
+            const x = getX(idx, trajectory.length);
+            const y = getY(t.realized_revenue);
+            if (idx === 0) {
+                ctx.moveTo(x, h - padBottom);
+                ctx.lineTo(x, y);
+            } else {
+                ctx.lineTo(x, y);
+            }
+        });
+        const lastActualX = getX(trajectory.length - 1, trajectory.length);
+        ctx.lineTo(lastActualX, h - padBottom);
+        ctx.closePath();
+        ctx.fill();
+
+        // Actual Line
+        ctx.strokeStyle = "#10B981";
         ctx.lineWidth = 3;
         ctx.beginPath();
         trajectory.forEach((t, idx) => {
-            const x = 40 + (idx / Math.max(trajectory.length - 1, 1)) * (w * 0.7 - 40);
-            const y = h - 60 - (idx * 25);
+            const x = getX(idx, trajectory.length);
+            const y = getY(t.realized_revenue);
             if (idx === 0) ctx.moveTo(x, y);
             else ctx.lineTo(x, y);
         });
         ctx.stroke();
 
-        // Draw Projected Continuation (Dashed Blue)
+        // Projected Continuation (Dashed Blue)
+        const lastActualY = getY(trajectory[trajectory.length - 1].realized_revenue);
+        const projY = getY(projectedRevenue || trajectory[trajectory.length - 1].realized_revenue * 1.15);
+
+        ctx.save();
         ctx.setLineDash([5, 5]);
-        ctx.strokeStyle = "#2563EB";
-        ctx.lineWidth = 3;
+        ctx.strokeStyle = "#38BDF8";
+        ctx.lineWidth = 2.5;
         ctx.beginPath();
-        const lastX = w * 0.7;
-        const lastY = h - 60 - ((trajectory.length - 1) * 25);
-        ctx.moveTo(lastX, lastY);
-        ctx.lineTo(w - 30, 45);
+        ctx.moveTo(lastActualX, lastActualY);
+        ctx.lineTo(w - padRight, projY);
         ctx.stroke();
-        ctx.setLineDash([]);
+        ctx.restore();
+
+        // Labels
+        drawRoundedBadge(ctx, lastActualX, lastActualY - 14, "Actual", "#121929", "#10B981", "rgba(16, 185, 129, 0.4)");
+        drawRoundedBadge(ctx, w - padRight, projY - 14, "30D Proj", "#121929", "#38BDF8", "rgba(56, 189, 248, 0.4)");
     }
+
 
     // =========================================================================
     // 13. MODAL HANDLERS & DIAGNOSTICS
