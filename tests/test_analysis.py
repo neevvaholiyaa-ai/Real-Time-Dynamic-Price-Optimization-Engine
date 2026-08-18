@@ -89,3 +89,29 @@ def test_missing_data_confidence_classification(auth_client):
     assert any("Competitor price unavailable" in d for d in analysis["confidence_details"])
     assert analysis["competitor_gap_pct"] is None
     assert analysis["stock_runway_days"] is None
+
+def test_store_location_in_analysis(auth_client):
+    # Product with Surat location
+    prod_resp = auth_client.post("/api/products", json={
+        "product_name": "Surat Silk Saree Collection",
+        "category": "Fashion",
+        "location": "Surat",
+        "cost_price": 2000.0,
+        "current_price": 3499.0,
+        "mrp": 4999.0,
+        "competitor_price": 3299.0,
+        "stock_quantity": 50,
+        "average_daily_sales": 4.0
+    })
+    assert prod_resp.status_code == 201
+    prod_id = prod_resp.json()["product_id"]
+
+    analyze_resp = auth_client.post(f"/api/products/{prod_id}/analyze")
+    assert analyze_resp.status_code == 200
+    analysis = analyze_resp.json()
+
+    assert any("Store location verified (Surat)" in d for d in analysis["confidence_details"])
+    assert analysis["feature_provenance"]["City_Code"] == "USER_INPUT"
+    assert "topology_curve" in analysis
+    assert len(analysis["topology_curve"]) > 0
+

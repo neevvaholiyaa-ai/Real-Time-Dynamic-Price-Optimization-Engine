@@ -80,3 +80,30 @@ def test_cost_exceeding_mrp_validation(auth_client):
     }
     resp = auth_client.post("/api/products", json=invalid_payload)
     assert resp.status_code == 400
+
+def test_product_store_location(auth_client):
+    # Create product with Ahmedabad location
+    prod_payload = {
+        "product_name": "Smart Fitness Band",
+        "category": "Electronics",
+        "location": "Ahmedabad",
+        "cost_price": 1200.0,
+        "current_price": 2499.0,
+        "mrp": 2999.0
+    }
+    create_resp = auth_client.post("/api/products", json=prod_payload)
+    assert create_resp.status_code == 201
+    prod = create_resp.json()
+    assert prod["location"] == "Ahmedabad"
+    pid = prod["product_id"]
+
+    # Update location to Surat
+    upd_resp = auth_client.put(f"/api/products/{pid}", json={"location": "Surat"})
+    assert upd_resp.status_code == 200
+    assert upd_resp.json()["location"] == "Surat"
+
+    # Get product and verify
+    get_resp = auth_client.get(f"/api/products/{pid}")
+    assert get_resp.status_code == 200
+    assert get_resp.json()["location"] == "Surat"
+

@@ -55,7 +55,7 @@ def resolve_feature_provenance(product_dict: Dict[str, Any]) -> Dict[str, str]:
     has_orders = product_dict.get("average_daily_sales") is not None or product_dict.get("orders") is not None
     has_fest = product_dict.get("days_until_next_festival") is not None
     has_reorder = product_dict.get("reorder_threshold") is not None
-    has_city = product_dict.get("location") is not None or product_dict.get("city") is not None
+    has_city = bool(product_dict.get("location")) or bool(product_dict.get("city"))
     has_weather = product_dict.get("weather_type") is not None
     has_comp_stock = product_dict.get("competitor_stock_status") is not None
 
@@ -160,12 +160,14 @@ def classify_prediction_confidence(product_dict: Dict[str, Any]) -> Tuple[str, L
         level = "low"
 
     details = []
+    if available:
+        details.append(f"{len(available)} input(s) actively provided:")
+        for a in available:
+            details.append(f"• {a}")
     if missing:
         details.append(f"{len(missing)} input(s) unavailable — model baselines used:")
         for m in missing:
             details.append(f"• {m}")
-    if available:
-        details.insert(0, f"{len(available)} input(s) actively provided")
 
     return level, details
 

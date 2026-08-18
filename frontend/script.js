@@ -12,6 +12,7 @@ document.addEventListener("DOMContentLoaded", () => {
         user: null,
         activeView: "overview",
         products: [],
+        productMode: "new",
         activeProductId: null,
         analyses: [],
         latestAnalysis: null,
@@ -22,7 +23,9 @@ document.addEventListener("DOMContentLoaded", () => {
         queueFilterCategory: "all"
     };
 
-    const API_BASE = "";
+    const API_BASE = window.location.protocol === "file:" 
+        ? "http://127.0.0.1:8000" 
+        : (["5500", "3000", "5173", "8080"].includes(window.location.port) ? "http://127.0.0.1:8000" : "");
 
     // =========================================================================
     // 2. DOM ELEMENTS
@@ -128,7 +131,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     async function checkAuthSession() {
         try {
-            const resp = await fetch("/api/auth/me", { credentials: "include" });
+            const resp = await fetch(`${API_BASE}/api/auth/me`, { credentials: "include" });
             if (resp.ok) {
                 appState.user = await resp.json();
                 showAppScreen();
@@ -169,7 +172,7 @@ document.addEventListener("DOMContentLoaded", () => {
             if (loginError) loginError.style.display = "none";
 
             try {
-                const resp = await fetch("/api/auth/login", {
+                const resp = await fetch(`${API_BASE}/api/auth/login`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ email, password }),
@@ -207,7 +210,7 @@ document.addEventListener("DOMContentLoaded", () => {
             if (regError) regError.style.display = "none";
 
             try {
-                const resp = await fetch("/api/auth/register", {
+                const resp = await fetch(`${API_BASE}/api/auth/register`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ display_name, email, password }),
@@ -239,7 +242,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (sidebarLogoutBtn) {
         sidebarLogoutBtn.addEventListener("click", async () => {
             try {
-                await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
+                await fetch(`${API_BASE}/api/auth/logout`, { method: "POST", credentials: "include" });
             } catch {}
             appState.user = null;
             showAuthScreen();
@@ -505,7 +508,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const salesSelect = document.getElementById("salesProductSelect");
         if (!select) return;
 
-        select.innerHTML = '<option value="">-- Create or Select a Product --</option>';
+        select.innerHTML = '<option value="">Select Stored Product to Optimize</option>';
         if (salesSelect) salesSelect.innerHTML = '<option value="">-- Select Product --</option>';
 
         appState.products.forEach(p => {
@@ -524,35 +527,49 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (appState.activeProductId) {
             select.value = appState.activeProductId;
+        } else {
+            select.value = "";
         }
     }
 
     function renderProductAnalyzer() {
         populateProductDropdown();
         const select = document.getElementById("simActiveProductSelect");
+        if (appState.activeProductId) {
+            select.value = appState.activeProductId;
+            const prod = appState.products.find(p => p.product_id === appState.activeProductId);
+            if (prod) {
+                loadProductIntoForm(prod);
+                return;
+            }
+        }
         if (select && select.value) {
             const prod = appState.products.find(p => p.product_id === select.value);
-            if (prod) loadProductIntoForm(prod);
-        } else if (appState.products.length > 0 && !appState.activeProductId) {
-            // Load first product by default
-            select.value = appState.products[0].product_id;
-            loadProductIntoForm(appState.products[0]);
+            if (prod) {
+                loadProductIntoForm(prod);
+                return;
+            }
         }
+        resetProductForm();
     }
 
     function loadProductIntoForm(prod) {
         appState.activeProductId = prod.product_id;
+        appState.productMode = "edit";
+        const select = document.getElementById("simActiveProductSelect");
+        if (select) select.value = prod.product_id;
+
         document.getElementById("prodInputName").value = prod.product_name || "";
-        document.getElementById("prodInputCategory").value = prod.category || "Electronics";
+        document.getElementById("prodInputCategory").value = prod.category || "";
         document.getElementById("prodInputBrand").value = prod.brand || "";
         document.getElementById("prodInputLocation").value = prod.location || "";
-        document.getElementById("prodInputCostPrice").value = prod.cost_price || "";
-        document.getElementById("prodInputCurrentPrice").value = prod.current_price || "";
-        document.getElementById("prodInputMRP").value = prod.mrp || "";
-        document.getElementById("prodInputCompetitorPrice").value = prod.competitor_price || "";
+        document.getElementById("prodInputCostPrice").value = prod.cost_price !== null && prod.cost_price !== undefined ? prod.cost_price : "";
+        document.getElementById("prodInputCurrentPrice").value = prod.current_price !== null && prod.current_price !== undefined ? prod.current_price : "";
+        document.getElementById("prodInputMRP").value = prod.mrp !== null && prod.mrp !== undefined ? prod.mrp : "";
+        document.getElementById("prodInputCompetitorPrice").value = prod.competitor_price !== null && prod.competitor_price !== undefined ? prod.competitor_price : "";
         document.getElementById("prodInputCompetitorName").value = prod.competitor_name || "";
-        document.getElementById("prodInputStock").value = prod.stock_quantity !== null ? prod.stock_quantity : "";
-        document.getElementById("prodInputDailySales").value = prod.average_daily_sales !== null ? prod.average_daily_sales : "";
+        document.getElementById("prodInputStock").value = prod.stock_quantity !== null && prod.stock_quantity !== undefined ? prod.stock_quantity : "";
+        document.getElementById("prodInputDailySales").value = prod.average_daily_sales !== null && prod.average_daily_sales !== undefined ? prod.average_daily_sales : "";
         document.getElementById("prodInputGoal").value = prod.business_goal || "balanced";
 
         // Sync slider values
@@ -560,7 +577,8 @@ document.addEventListener("DOMContentLoaded", () => {
         if (sliderComp) {
             const cPrice = prod.competitor_price || prod.current_price || 2000;
             sliderComp.value = cPrice;
-            document.getElementById("sliderCompVal").textContent = formatINR(cPrice);
+            const compVal = document.getElementById("sliderCompVal");
+            if (compVal) compVal.textContent = formatINR(cPrice);
         }
 
         // Run real-time simulation
@@ -583,30 +601,135 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function resetProductForm() {
         appState.activeProductId = null;
-        document.getElementById("prodInputName").value = "";
-        document.getElementById("prodInputCategory").value = "Electronics";
-        document.getElementById("prodInputBrand").value = "";
-        document.getElementById("prodInputLocation").value = "";
-        document.getElementById("prodInputCostPrice").value = "";
-        document.getElementById("prodInputCurrentPrice").value = "";
-        document.getElementById("prodInputMRP").value = "";
-        document.getElementById("prodInputCompetitorPrice").value = "";
-        document.getElementById("prodInputCompetitorName").value = "";
-        document.getElementById("prodInputStock").value = "";
-        document.getElementById("prodInputDailySales").value = "";
-        document.getElementById("prodInputGoal").value = "balanced";
-        document.getElementById("simProductHeroTitle").textContent = "New Product Specification";
-        document.getElementById("simRecPrice").textContent = "--";
+        appState.latestAnalysis = null;
+        appState.productMode = "new";
+
+        const select = document.getElementById("simActiveProductSelect");
+        if (select) select.value = "";
+
+        const nameInput = document.getElementById("prodInputName");
+        if (nameInput) nameInput.value = "";
+        const catInput = document.getElementById("prodInputCategory");
+        if (catInput) catInput.value = "";
+        const brandInput = document.getElementById("prodInputBrand");
+        if (brandInput) brandInput.value = "";
+        const locInput = document.getElementById("prodInputLocation");
+        if (locInput) locInput.value = "";
+        const costInput = document.getElementById("prodInputCostPrice");
+        if (costInput) costInput.value = "";
+        const currInput = document.getElementById("prodInputCurrentPrice");
+        if (currInput) currInput.value = "";
+        const mrpInput = document.getElementById("prodInputMRP");
+        if (mrpInput) mrpInput.value = "";
+        const compPriceInput = document.getElementById("prodInputCompetitorPrice");
+        if (compPriceInput) compPriceInput.value = "";
+        const compNameInput = document.getElementById("prodInputCompetitorName");
+        if (compNameInput) compNameInput.value = "";
+        const stockInput = document.getElementById("prodInputStock");
+        if (stockInput) stockInput.value = "";
+        const salesInput = document.getElementById("prodInputDailySales");
+        if (salesInput) salesInput.value = "";
+        const goalInput = document.getElementById("prodInputGoal");
+        if (goalInput) goalInput.value = "";
+
+        // Reset Hero and Outputs
+        const heroTitle = document.getElementById("simProductHeroTitle");
+        if (heroTitle) heroTitle.textContent = "New Product Specification";
+        const recPrice = document.getElementById("simRecPrice");
+        if (recPrice) recPrice.textContent = "--";
+        const currDisplay = document.getElementById("simCurrentPriceDisplay");
+        if (currDisplay) currDisplay.textContent = "₹--";
+        const deltaDisplay = document.getElementById("simPriceDeltaDisplay");
+        if (deltaDisplay) deltaDisplay.textContent = "₹0 (0.0%)";
+        const marginPill = document.getElementById("simMarginPill");
+        if (marginPill) {
+            marginPill.textContent = "--% Gross Margin";
+            marginPill.style.background = "var(--surface-light)";
+            marginPill.style.color = "var(--text-muted)";
+            marginPill.style.borderColor = "var(--border-subtle)";
+        }
+        const actionBadge = document.getElementById("simActionBadge");
+        if (actionBadge) {
+            actionBadge.textContent = "Awaiting Input";
+            actionBadge.style.background = "var(--brand-light)";
+            actionBadge.style.color = "var(--brand-primary)";
+        }
+        const confBadge = document.getElementById("simConfidenceBadge");
+        if (confBadge) {
+            confBadge.textContent = "Confidence: --";
+            confBadge.className = "confidence-badge badge-medium";
+        }
+        const floorPrice = document.getElementById("simFloorPrice");
+        if (floorPrice) floorPrice.textContent = "₹--";
+        const ceilPrice = document.getElementById("simCeilPrice");
+        if (ceilPrice) ceilPrice.textContent = "₹--";
+        const guardStatus = document.getElementById("simGuardrailStatus");
+        if (guardStatus) {
+            guardStatus.textContent = "Pending";
+            guardStatus.className = "guardrail-badge badge-pass";
+        }
+        const simVol = document.getElementById("simVolume");
+        if (simVol) simVol.textContent = "-- Units";
+        const simRev = document.getElementById("simRevenue");
+        if (simRev) simRev.textContent = "₹--";
+        const simMarg = document.getElementById("simMargin");
+        if (simMarg) simMarg.textContent = "--%";
+        const simMargSub = document.getElementById("simMarginSub");
+        if (simMargSub) simMargSub.textContent = "--";
+
+        const insightsList = document.getElementById("simInsightsList");
+        if (insightsList) {
+            insightsList.innerHTML = "<li>Provide product parameters and click Analyze to view economic reasoning.</li>";
+        }
+        const driversTags = document.getElementById("economicDriversTags");
+        if (driversTags) {
+            driversTags.innerHTML = "";
+        }
+
+        // Reset Sliders
+        const sliderComp = document.getElementById("sliderComp");
+        if (sliderComp) {
+            sliderComp.value = 4150;
+            const compVal = document.getElementById("sliderCompVal");
+            if (compVal) compVal.textContent = "₹4,150";
+        }
+        const sliderDemand = document.getElementById("sliderDemand");
+        if (sliderDemand) {
+            sliderDemand.value = 100;
+            const demandVal = document.getElementById("sliderDemandVal");
+            if (demandVal) demandVal.textContent = "1.0x";
+        }
+        const sliderInventory = document.getElementById("sliderInventory");
+        if (sliderInventory) {
+            sliderInventory.value = 30;
+            const invVal = document.getElementById("sliderInventoryVal");
+            if (invVal) invVal.textContent = "30 Days";
+        }
+        const sliderMargin = document.getElementById("sliderMargin");
+        if (sliderMargin) {
+            sliderMargin.value = 5.5;
+            const marginVal = document.getElementById("sliderMarginVal");
+            if (marginVal) marginVal.textContent = "5.5%";
+        }
+
+        // Clear simulation chart
+        renderTopologySimulationChart(null);
     }
 
     const btnNewProduct = document.getElementById("btnNewProduct");
-    if (btnNewProduct) btnNewProduct.addEventListener("click", resetProductForm);
+    if (btnNewProduct) {
+        btnNewProduct.addEventListener("click", () => {
+            resetProductForm();
+            showToast("Ready to configure a new product.");
+        });
+    }
 
     const sidebarAddProductBtn = document.getElementById("sidebarAddProductBtn");
     if (sidebarAddProductBtn) {
         sidebarAddProductBtn.addEventListener("click", () => {
             switchView("simulator");
             resetProductForm();
+            showToast("Ready to configure a new product.");
         });
     }
 
@@ -615,6 +738,7 @@ document.addEventListener("DOMContentLoaded", () => {
         headerAddProductBtn.addEventListener("click", () => {
             switchView("simulator");
             resetProductForm();
+            showToast("Ready to configure a new product.");
         });
     }
 
@@ -636,6 +760,8 @@ document.addEventListener("DOMContentLoaded", () => {
                         const updated = await resp.json();
                         showToast(`Product "${updated.product_name}" updated successfully!`);
                         await loadProducts();
+                        const sel = document.getElementById("simActiveProductSelect");
+                        if (sel) sel.value = updated.product_id;
                     } else {
                         const err = await resp.json();
                         showToast(err.detail || "Failed to update product.", true);
@@ -649,9 +775,11 @@ document.addEventListener("DOMContentLoaded", () => {
                     if (resp.ok) {
                         const created = await resp.json();
                         appState.activeProductId = created.product_id;
+                        appState.productMode = "edit";
                         showToast(`Product "${created.product_name}" created successfully!`);
                         await loadProducts();
-                        document.getElementById("simActiveProductSelect").value = created.product_id;
+                        const sel = document.getElementById("simActiveProductSelect");
+                        if (sel) sel.value = created.product_id;
                     } else {
                         const err = await resp.json();
                         showToast(err.detail || "Failed to create product.", true);
@@ -683,10 +811,16 @@ document.addEventListener("DOMContentLoaded", () => {
                     const newProd = await pResp.json();
                     productId = newProd.product_id;
                     appState.activeProductId = productId;
+                    appState.productMode = "edit";
                     await loadProducts();
+                    const sel = document.getElementById("simActiveProductSelect");
+                    if (sel) sel.value = productId;
                 } else {
                     // Save updates
                     await apiFetch(`/api/products/${productId}`, { method: "PUT", body: payload });
+                    await loadProducts();
+                    const sel = document.getElementById("simActiveProductSelect");
+                    if (sel) sel.value = productId;
                 }
 
                 // Run Analysis Endpoint
@@ -709,12 +843,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function getProductFormData() {
         const name = document.getElementById("prodInputName")?.value.trim();
+        const category = document.getElementById("prodInputCategory")?.value;
         const cost = parseFloat(document.getElementById("prodInputCostPrice")?.value);
         const curr = parseFloat(document.getElementById("prodInputCurrentPrice")?.value);
         const mrp = parseFloat(document.getElementById("prodInputMRP")?.value);
 
         if (!name) {
             showToast("Please enter a product name.", true);
+            return null;
+        }
+        if (!category) {
+            showToast("Please select a product category.", true);
             return null;
         }
         if (isNaN(cost) || cost <= 0) {
@@ -741,12 +880,14 @@ document.addEventListener("DOMContentLoaded", () => {
         const stock = stockVal ? parseInt(stockVal) : null;
         const salesVal = document.getElementById("prodInputDailySales")?.value;
         const sales = salesVal ? parseFloat(salesVal) : null;
+        const locVal = document.getElementById("prodInputLocation")?.value.trim() || null;
+        const goalVal = document.getElementById("prodInputGoal")?.value || "balanced";
 
         return {
             product_name: name,
-            category: document.getElementById("prodInputCategory")?.value || "Electronics",
+            category: category,
             brand: document.getElementById("prodInputBrand")?.value.trim() || null,
-            location: document.getElementById("prodInputLocation")?.value.trim() || null,
+            location: locVal,
             cost_price: cost,
             current_price: curr,
             mrp: mrp,
@@ -754,7 +895,7 @@ document.addEventListener("DOMContentLoaded", () => {
             competitor_name: compName,
             stock_quantity: stock,
             average_daily_sales: sales,
-            business_goal: document.getElementById("prodInputGoal")?.value || "balanced"
+            business_goal: goalVal
         };
     }
 
@@ -783,10 +924,13 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    // Form inputs change simulation trigger
-    ["prodInputCostPrice", "prodInputCurrentPrice", "prodInputMRP", "prodInputCategory", "prodInputCompetitorPrice", "prodInputStock", "prodInputDailySales"].forEach(id => {
+    // Form inputs and dropdowns trigger real-time simulation
+    ["prodInputCostPrice", "prodInputCurrentPrice", "prodInputMRP", "prodInputCategory", "prodInputLocation", "prodInputCompetitorPrice", "prodInputStock", "prodInputDailySales", "prodInputGoal"].forEach(id => {
         const el = document.getElementById(id);
-        if (el) el.addEventListener("input", debounceSimulation);
+        if (el) {
+            el.addEventListener("input", debounceSimulation);
+            el.addEventListener("change", debounceSimulation);
+        }
     });
 
     async function runStatelessSimulation() {
@@ -797,6 +941,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const name = document.getElementById("prodInputName")?.value || "Simulation Target";
         const cat = document.getElementById("prodInputCategory")?.value || "Electronics";
+        const loc = document.getElementById("prodInputLocation")?.value || "Ahmedabad";
         const comp = sliderComp ? parseFloat(sliderComp.value) : (parseFloat(document.getElementById("prodInputCompetitorPrice")?.value) || curr);
         const demandMult = sliderDemand ? (parseInt(sliderDemand.value) / 100) : 1.0;
         const runway = sliderInventory ? parseInt(sliderInventory.value) : 30;
@@ -807,6 +952,8 @@ document.addEventListener("DOMContentLoaded", () => {
             product_id: appState.activeProductId || "PROD-SIM-001",
             product_name: name,
             category: cat,
+            city: loc,
+            location: loc,
             cost_price: cost,
             current_price: curr,
             mrp: mrp,
@@ -816,7 +963,7 @@ document.addEventListener("DOMContentLoaded", () => {
         };
 
         try {
-            const resp = await fetch("/predict", {
+            const resp = await fetch(`${API_BASE}/predict`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(simPayload)
@@ -886,6 +1033,10 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById("simVolume").textContent = `${formatNumber(volume)} Units`;
         document.getElementById("simRevenue").textContent = formatINR(revenue);
         document.getElementById("simMargin").textContent = `${marginPct.toFixed(1)}%`;
+        const marginSub = document.getElementById("simMarginSub");
+        if (marginSub) {
+            marginSub.textContent = `${deltaPct >= 0 ? '+' : ''}${deltaPct.toFixed(1)}% lift`;
+        }
 
         // Insights list
         const insightsList = document.getElementById("simInsightsList");
@@ -916,14 +1067,88 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function renderAnalysisResults(analysis) {
-        document.getElementById("simRecPrice").textContent = Math.round(analysis.recommended_price).toLocaleString("en-IN");
-        document.getElementById("simCurrentPriceDisplay").textContent = formatINR(analysis.input_current_price);
-        document.getElementById("simPriceDeltaDisplay").textContent = `${analysis.price_change >= 0 ? '+' : ''}${formatINR(analysis.price_change)} (${analysis.price_change_pct >= 0 ? '+' : ''}${analysis.price_change_pct.toFixed(1)}%)`;
+        const title = document.getElementById("simProductHeroTitle");
+        if (title) title.textContent = analysis.product_name || document.getElementById("prodInputName")?.value || "Optimized Product";
+
+        const recPrice = analysis.recommended_price;
+        const currPrice = analysis.input_current_price;
+        const costPrice = analysis.input_cost_price;
+
+        document.getElementById("simRecPrice").textContent = Math.round(recPrice).toLocaleString("en-IN");
+        document.getElementById("simCurrentPriceDisplay").textContent = formatINR(currPrice);
+
+        const delta = analysis.price_change;
+        const deltaPct = analysis.price_change_pct;
+        const sign = delta >= 0 ? "+" : "";
+        document.getElementById("simPriceDeltaDisplay").textContent = `${sign}${formatINR(delta)} (${sign}${deltaPct.toFixed(1)}%)`;
+
+        const marginPill = document.getElementById("simMarginPill");
+        if (marginPill) {
+            marginPill.textContent = `${analysis.margin_recommended_pct.toFixed(1)}% Gross Margin`;
+            marginPill.style.background = delta >= 0 ? "var(--emerald-bg)" : "var(--coral-bg)";
+            marginPill.style.color = delta >= 0 ? "var(--emerald)" : "var(--coral)";
+            marginPill.style.borderColor = delta >= 0 ? "var(--emerald-border)" : "var(--coral-border)";
+        }
+
+        const actionBadge = document.getElementById("simActionBadge");
+        if (actionBadge) {
+            actionBadge.textContent = analysis.recommendation;
+            actionBadge.style.background = deltaPct > 1.5 ? "var(--emerald-bg)" : deltaPct < -1.5 ? "var(--coral-bg)" : "var(--brand-light)";
+            actionBadge.style.color = deltaPct > 1.5 ? "var(--emerald)" : deltaPct < -1.5 ? "var(--coral)" : "var(--brand-primary)";
+        }
 
         const confBadge = document.getElementById("simConfidenceBadge");
         if (confBadge) {
-            confBadge.textContent = `Confidence: ${analysis.confidence_level.toUpperCase()}`;
-            confBadge.className = `confidence-badge badge-${analysis.confidence_level}`;
+            confBadge.textContent = `Confidence: ${(analysis.confidence_level || 'MEDIUM').toUpperCase()}`;
+            confBadge.className = `confidence-badge badge-${analysis.confidence_level || 'medium'}`;
+        }
+
+        document.getElementById("simFloorPrice").textContent = formatINR(analysis.min_allowed_price);
+        document.getElementById("simCeilPrice").textContent = formatINR(analysis.max_allowed_price);
+
+        const statusBadge = document.getElementById("simGuardrailStatus");
+        if (statusBadge) {
+            statusBadge.textContent = analysis.guardrail_applied ? "Clipped by Guardrail" : "Verified Pass";
+            statusBadge.className = analysis.guardrail_applied ? "guardrail-badge badge-clipped" : "guardrail-badge badge-pass";
+        }
+
+        if (analysis.expected_demand) {
+            document.getElementById("simVolume").textContent = `${formatNumber(Math.round(analysis.expected_demand * 30))} Units`;
+        }
+        if (analysis.expected_revenue_30d) {
+            document.getElementById("simRevenue").textContent = formatINR(analysis.expected_revenue_30d);
+        }
+        document.getElementById("simMargin").textContent = `${analysis.margin_recommended_pct.toFixed(1)}%`;
+        const marginSub = document.getElementById("simMarginSub");
+        if (marginSub) {
+            marginSub.textContent = `${analysis.margin_lift_pct >= 0 ? '+' : ''}${analysis.margin_lift_pct.toFixed(1)}% lift`;
+        }
+
+        const insightsList = document.getElementById("simInsightsList");
+        if (insightsList && Array.isArray(analysis.insights)) {
+            insightsList.innerHTML = "";
+            analysis.insights.forEach(msg => {
+                const li = document.createElement("li");
+                li.textContent = msg;
+                insightsList.appendChild(li);
+            });
+        }
+
+        const driversTags = document.getElementById("economicDriversTags");
+        if (driversTags) {
+            driversTags.innerHTML = "";
+            if (Array.isArray(analysis.economic_drivers)) {
+                analysis.economic_drivers.forEach(d => {
+                    const span = document.createElement("span");
+                    span.className = "driver-tag";
+                    span.innerHTML = `<strong>${d.name}:</strong> ${d.detail}`;
+                    driversTags.appendChild(span);
+                });
+            }
+        }
+
+        if (analysis.topology_curve && analysis.topology_curve.length > 0) {
+            renderTopologySimulationChart(analysis.topology_curve, recPrice, costPrice, analysis.input_mrp, currPrice);
         }
     }
 
@@ -1747,7 +1972,7 @@ document.addEventListener("DOMContentLoaded", () => {
             // 1. Health check
             const t0 = performance.now();
             try {
-                const hResp = await fetch("/health");
+                const hResp = await fetch(`${API_BASE}/health`);
                 const t1 = performance.now();
                 if (healthLabel) healthLabel.textContent = `${Math.round(t1 - t0)} ms (${hResp.status === 200 ? 'OK' : 'Err'})`;
             } catch {
@@ -1757,7 +1982,7 @@ document.addEventListener("DOMContentLoaded", () => {
             // 2. Predict inference
             const p0 = performance.now();
             try {
-                const pResp = await fetch("/predict", {
+                const pResp = await fetch(`${API_BASE}/predict`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({

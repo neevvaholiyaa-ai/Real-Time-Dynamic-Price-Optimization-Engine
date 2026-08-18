@@ -301,7 +301,9 @@ def analyze_product(product_id: str, current_user: Dict[str, Any] = Depends(get_
 
     created = fetch_one("SELECT * FROM pricing_analyses WHERE analysis_id = ?", (analysis_id,))
     # Parse JSON fields for response
-    return _serialize_analysis(created, product)
+    serialized = _serialize_analysis(created, product)
+    serialized["topology_curve"] = analysis_data.get("topology_curve", [])
+    return serialized
 
 @app.get("/api/analyses", response_model=List[AnalysisResponse], tags=["Analysis"])
 def list_analyses(current_user: Dict[str, Any] = Depends(get_current_user)):
@@ -776,13 +778,18 @@ def simulate_price_prediction(req: PricePredictionRequest):
         )
 
     product_dict = req.model_dump()
+    if not product_dict.get("city") and product_dict.get("location"):
+        product_dict["city"] = product_dict["location"]
+    if not product_dict.get("location") and product_dict.get("city"):
+        product_dict["location"] = product_dict["city"]
+
     analysis_data = analyze_product_pricing(product_dict)
 
     return {
         "product_id": req.product_id or "PROD-SIM-001",
         "product_name": req.product_name or "Target SKU",
         "category": req.category,
-        "city": req.city,
+        "city": product_dict.get("city") or "Ahmedabad",
         "current_price": req.current_price,
         "recommended_price": analysis_data["recommended_price"],
         "price_change": analysis_data["price_change"],
@@ -866,6 +873,7 @@ def _serialize_analysis(a: Dict[str, Any], p: Dict[str, Any]) -> Dict[str, Any]:
         "insights": json.loads(a["insights"]) if a.get("insights") else [],
         "economic_drivers": json.loads(a["economic_drivers"]) if a.get("economic_drivers") else [],
         "feature_provenance": json.loads(a["feature_provenance"]) if a.get("feature_provenance") else {},
+        "topology_curve": a.get("topology_curve") or [],
         "status": a["status"],
         "applied_at": str(a["applied_at"]) if a.get("applied_at") else None,
         "created_at": str(a["created_at"]) if a.get("created_at") else None
@@ -882,7 +890,11 @@ if FRONTEND_DIR.exists():
 @app.get("/", tags=["Frontend"])
 @app.get("/{full_path:path}", tags=["Frontend"])
 def serve_spa(full_path: str = ""):
-    """Serves the single-page application index.html."""
+    """Serves static assets if found, or the single-page application index.html."""
+    if full_path:
+        requested_file = FRONTEND_DIR / full_path
+        if requested_file.exists() and requested_file.is_file():
+            return FileResponse(str(requested_file))
     index_file = FRONTEND_DIR / "index.html"
     if index_file.exists():
         return FileResponse(str(index_file))

@@ -139,6 +139,7 @@ class AnalysisResponse(BaseModel):
     insights: List[str] = []
     economic_drivers: List[Dict[str, Any]] = []
     feature_provenance: Dict[str, str] = {}
+    topology_curve: List[Dict[str, Any]] = []
 
     status: str = "pending"
     applied_at: Optional[str] = None
@@ -268,6 +269,7 @@ class PricePredictionRequest(BaseModel):
     product_name: Optional[str] = Field(default="Target SKU")
     category: str = Field(default="Electronics")
     city: Optional[str] = Field(default="Ahmedabad")
+    location: Optional[str] = Field(default=None)
     cost_price: float = Field(..., gt=0)
     current_price: float = Field(..., gt=0)
     mrp: float = Field(..., gt=0)
