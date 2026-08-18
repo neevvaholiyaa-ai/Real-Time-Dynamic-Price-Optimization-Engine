@@ -1,43 +1,30 @@
 {
   "version": 2,
-  "builds": [
+  "rewrites": [
     {
-      "src": "api/index.py",
-      "use": "@vercel/python"
+      "source": "/api/(.*)",
+      "destination": "https://real-time-dynamic-price-optimization.onrender.com/api/$1"
     },
     {
-      "src": "frontend/**",
-      "use": "@vercel/static"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/static/(.*)",
-      "dest": "/frontend/$1"
+      "source": "/predict",
+      "destination": "https://real-time-dynamic-price-optimization.onrender.com/predict"
     },
     {
-      "src": "/api/(.*)",
-      "dest": "/api/index.py"
+      "source": "/health",
+      "destination": "https://real-time-dynamic-price-optimization.onrender.com/health"
     },
     {
-      "src": "/predict",
-      "dest": "/api/index.py"
+      "source": "/docs",
+      "destination": "https://real-time-dynamic-price-optimization.onrender.com/docs"
     },
     {
-      "src": "/health",
-      "dest": "/api/index.py"
+      "source": "/openapi.json",
+      "destination": "https://real-time-dynamic-price-optimization.onrender.com/openapi.json"
     },
     {
-      "src": "/docs",
-      "dest": "/api/index.py"
-    },
-    {
-      "src": "/openapi.json",
-      "dest": "/api/index.py"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/frontend/index.html"
+      "source": "/(.*)",
+      "destination": "/frontend/$1"
     }
   ]
 }
+
