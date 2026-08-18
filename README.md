@@ -1,314 +1,288 @@
-# AuraPrice: Real-Time Dynamic Price Optimization Engine
+# AuraPrice
 
-<p align="center">
-  <img src="https://img.shields.io/badge/Status-Live%20in%20Production-success?style=for-the-badge&logo=vercel&logoColor=white" alt="Production Status" />
-  <img src="https://img.shields.io/badge/FastAPI-0.100+-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI" />
-  <img src="https://img.shields.io/badge/LightGBM-3.3+-brightgreen?style=for-the-badge&logo=lightgbm&logoColor=white" alt="LightGBM" />
-  <img src="https://img.shields.io/badge/Python-3.11%20%7C%203.14-blue?style=for-the-badge&logo=python&logoColor=white" alt="Python" />
-  <img src="https://img.shields.io/badge/License-MIT-purple?style=for-the-badge" alt="License" />
-</p>
+**AI-Powered Dynamic Pricing Intelligence & Margin Optimization for Real-World Retail**
 
-<p align="center">
-  <b>Enterprise-grade AI platform combining microeconomic profit maximization, price elasticity modeling, competitive positioning, and real-time inventory runway constraints for retail stores and e-commerce enterprises.</b>
-</p>
+AuraPrice is an enterprise-grade pricing intelligence platform designed to help retail businesses and e-commerce merchants replace static pricing guesswork with data-driven, margin-protected pricing recommendations.
 
 ---
 
-## 🔗 Live Application & Repository Links
+### 🌐 Live Application
+* **Live Web Application:** [https://real-time-dynamic-price-optimizatio.vercel.app/](https://real-time-dynamic-price-optimizatio.vercel.app/)
+* **Source Repository:** [https://github.com/neevvaholiyaa-ai/Real-Time-Dynamic-Price-Optimization-Engine](https://github.com/neevvaholiyaa-ai/Real-Time-Dynamic-Price-Optimization-Engine)
 
-* **🌐 Live Production Website:** [https://real-time-dynamic-price-optimizatio.vercel.app/](https://real-time-dynamic-price-optimizatio.vercel.app/)
-* **📦 GitHub Repository:** [https://github.com/neevvaholiyaa-ai/Real-Time-Dynamic-Price-Optimization-Engine](https://github.com/neevvaholiyaa-ai/Real-Time-Dynamic-Price-Optimization-Engine)
-* **⚡ Interactive API Docs (Swagger UI):** [https://real-time-dynamic-price-optimizatio.vercel.app/docs](https://real-time-dynamic-price-optimizatio.vercel.app/docs)
-* **🩺 Live Health Check & Latency Monitor:** [https://real-time-dynamic-price-optimizatio.vercel.app/health](https://real-time-dynamic-price-optimizatio.vercel.app/health)
+> *To access the live platform, create a store account directly on the login screen.*
 
 ---
 
-## 📌 Executive Summary
+## 📌 Project Overview
 
-Traditional retail and e-commerce merchants frequently suffer from **margin leakage** (underpricing high-demand items) and **stale inventory depreciation** (overpricing low-velocity items). 
+Pricing decisions directly dictate merchant survival, yet traditional retail pricing relies heavily on static markups or manual intuition. Merchants often struggle to balance multiple conflicting variables simultaneously: wholesale acquisition costs, maximum retail price (MRP) ceilings, competitor price movements, stock levels, inventory holding costs, and price elasticity of demand.
 
-**AuraPrice** solves this with a hybrid **Machine Learning + Microeconomic Optimization Engine** that ingests multi-variable business parameters in real-time, calculates optimal price points across price elasticity curves, ensures non-negotiable profit guardrails, and suggests actionable price adjustments in **under 5 milliseconds**.
+**AuraPrice** integrates these variables into a unified, user-first workflow. The platform analyzes merchant-supplied product parameters, evaluates price-demand relationships using a trained LightGBM machine learning model and microeconomic profit curves, enforces strict margin guardrails, and provides transparent, actionable pricing recommendations with transparent rationale.
+
+---
+
+## 🎯 Problem AuraPrice Solves
+
+Traditional retail store owners and pricing managers often manage pricing across spreadsheets or static rules, leading to two common failure modes:
+1. **Margin Leakage:** Selling high-demand or low-supply products below optimal market willingness-to-pay.
+2. **Deadweight Inventory Depreciation:** Holding overpriced stock too long, leading to tied-up working capital and distress markdowns.
+
+AuraPrice answers the critical operational questions for every product in a merchant's catalog:
+* *What price should I set today based on current stock, costs, and market conditions?*
+* *Why is this price recommended, and what are the primary economic drivers behind it?*
+* *How will a price change impact projected sales volume, revenue, and gross profit?*
+* *How do I ensure recommendations never violate my minimum margin or MRP limits?*
+
+---
+
+## ⚙️ How AuraPrice Works
+
+AuraPrice combines machine learning demand inference with deterministic microeconomic optimization and strict rule-based guardrails:
 
 ```mermaid
 flowchart LR
-    A[Merchant Inputs / Catalog] --> B[57 Feature Engineering Pipeline]
-    C[Competitor Prices & Market Signals] --> B
-    D[Inventory & Stock Runway] --> B
-    B --> E[LightGBM ML Demand Model]
-    E --> F[Microeconomic Optimization Grid]
-    F --> G[Safety Guardrails & Floor/Ceiling Limits]
-    G --> H[Actionable Recommended Price & Margin Lift]
+    A[Merchant Inputs\nCost, Price, Stock, Competitor] --> B[Feature Engineering\n57 Economic & Market Features]
+    B --> C[LightGBM Inference\nDemand Prediction]
+    C --> D[Economic Solver\nProfit Optimization Grid]
+    D --> E[Guardrail Enforcement\nMargin Floors & MRP Ceilings]
+    E --> F[AI Decision Explanation\nEconomic Drivers & Confidence]
+    F --> G[Actionable Recommendation\nDashboard & Action Queue]
+```
+
+1. **Input Ingestion:** The merchant enters core business parameters (cost price, current price, MRP, stock quantity, average daily sales, and competitor pricing).
+2. **Feature Transformation:** A 57-dimensional feature vector is generated capturing cost-to-price ratios, discount depths, elasticity baselines, and stock velocity.
+3. **Machine Learning Inference:** The LightGBM demand model predicts sales velocity across varying price intervals.
+4. **Profit Optimization:** An economic solver evaluates expected revenue and profit across a discretized price grid to locate the global profit-maximizing price.
+5. **Guardrail Enforcement:** User-defined and category constraints (minimum gross margin %, absolute price floors, MRP ceilings, and maximum percentage shift limits) are enforced.
+6. **Transparent Explanation:** The engine outputs the recommended price along with confidence scores, economic drivers, and expected profit impact.
+
+---
+
+## 🌟 Core Features
+
+### 🛍️ Custom Product Catalog Management
+* Merchants create, manage, and analyze their own product catalog.
+* Supports multi-category catalog structures with category-specific price elasticity baselines.
+
+### 📈 Dynamic Pricing Analysis
+* Evaluates individual products on-demand using all available business and market signals.
+* Produces clear recommendations: **Increase Price**, **Decrease Price**, or **Maintain Price**.
+
+### 🧪 Interactive "What-If" Price-Profit Simulator
+* Real-time interactive simulation sliders allow merchants to explore hypothetical market conditions (e.g., competitor price drops, stock supply surges).
+* Visualizes projected demand curves, expected 30-day revenue, and gross profit in real time without altering live catalog data.
+
+### 🧠 Transparent Decision Rationale
+* Explains the mathematical and economic rationale behind every recommendation.
+* Surfaces key economic drivers (e.g., *High Stock Runway*, *Favorable Competitor Gap*, *High Elasticity Demand Shock*).
+* Categorizes recommendation confidence (*High*, *Medium*, *Low*) based on the completeness of merchant-supplied business inputs.
+
+### 🛡️ Non-Negotiable Margin Guardrails
+* **Margin Floor Protection:** Guarantees prices never breach the merchant's target or minimum gross margin.
+* **MRP Ceiling:** Ensures prices never exceed legal Maximum Retail Price boundaries.
+* **Price Volatility Dampening:** Prevents drastic price swings by applying configurable percentage bounds per optimization cycle.
+
+### 📬 Reprice Action Queue
+* Centralized operational inbox displaying pending pricing recommendations across the catalog.
+* Enables 1-click price application or dismissal, updating live catalog prices immediately.
+
+### 📊 Revenue & Margin Intelligence
+* Consolidates store-wide pricing health, average profit margins, projected revenue lift, and inventory runway metrics into an executive dashboard.
+
+---
+
+## 🏛️ User-Centric Architecture & Data Principles
+
+A core architectural principle of AuraPrice is that **user-generated business data is the sole source of truth**:
+
+```mermaid
+flowchart TD
+    User([Authenticated Merchant]) --> Products[User Product Catalog]
+    Products --> Analyses[Pricing Analyses & Recommendations]
+    Analyses --> Actions[Price Update Actions]
+    Actions --> History[Historical Pricing & Sales Logs]
+    History --> Dashboard[User-Specific Analytics & Dashboard]
+```
+
+* **Complete Tenant Isolation:** Every user's catalog, sales logs, analyses, and custom settings are strictly isolated and query-scoped by authenticated user ID.
+* **No Fabricated Business Data:** AuraPrice never generates synthetic inventory or sales data for a merchant's store. If a business input is not provided, the engine clearly flags it as a model estimate.
+* **Separation of Actual vs. Projected Metrics:** 
+  * **Actual Metrics:** Computed strictly from historical sales records recorded by the user.
+  * **Projected Metrics:** Labeled as model-estimated simulations derived from demand elasticity curves.
+
+---
+
+## 🔬 Pricing Intelligence Engine
+
+The pricing intelligence engine operates as a hybrid pipeline combining machine learning inference with microeconomic optimization:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Merchant Business Inputs                 │
+│         Cost Price • Current Price • MRP • Stock • Comp     │
+└──────────────────────────────┬──────────────────────────────┘
+                               │
+                               ▼
+┌─────────────────────────────────────────────────────────────┐
+│             57-Dimensional Feature Transformer              │
+│       Elasticity Baselines • Margin Ratios • Seasonality    │
+└──────────────────────────────┬──────────────────────────────┘
+                               │
+                               ▼
+┌─────────────────────────────────────────────────────────────┐
+│              LightGBM Gradient Boosted Regressor            │
+│            Predicts Expected Demand Curve Q(Price)          │
+└──────────────────────────────┬──────────────────────────────┘
+                               │
+                               ▼
+┌─────────────────────────────────────────────────────────────┐
+│                 Microeconomic Profit Solver                 │
+│      Maximizes Profit:  Π(P) = (P - Cost) × Expected_Q(P)   │
+└──────────────────────────────┬──────────────────────────────┘
+                               │
+                               ▼
+┌─────────────────────────────────────────────────────────────┐
+│                 Guardrail & Safety Validation               │
+│       Min Margin % • MRP Ceiling • Max Allowed Price Δ%     │
+└──────────────────────────────┬──────────────────────────────┘
+                               │
+                               ▼
+┌─────────────────────────────────────────────────────────────┐
+│            Final Output & Actionable Intelligence           │
+│    Recommended Price • Margin Lift % • Economic Rationale   │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## ✨ Key Features & Capabilities
+## 💻 Technology Stack
 
-### 1. 🎯 Dynamic Price Optimization Engine
-* **Microeconomic Profit Maximization:** Computes expected demand $Q(P)$ and expected profit $\Pi(P) = (P - C) \times Q(P)$ across 100 pricing points to determine the mathematical global optimum.
-* **Category Elasticity Awareness:** Pre-seeded with empirically validated price elasticity baselines for categories ranging from inelastic groceries ($-0.85$) to highly elastic fashion ($-2.10$).
-* **Competitor Intelligence & Indexing:** Calculates competitor price gaps and protects against price undercut while maintaining target margins.
-* **Inventory Runway & Stockout Safeguards:** Dynamically raises prices for low-runway products to preserve stock and lowers prices for overstocked inventory to prevent deadweight holding costs.
+AuraPrice is built using a clean, modern, and dependency-conscious technology stack:
 
-### 2. 🤖 Sub-5ms Machine Learning Pipeline
-* **Model:** Gradient Boosted Trees (**LightGBM**) and Scikit-Learn pipelines trained on multi-regional retail transactions.
-* **57 Engineered Features:** Captures cost-to-price ratios, discount depths, elasticity coefficients, day-of-week demand seasonality, holiday demand shocks, and regional purchasing power indices.
-* **Stateless Prediction API:** `/predict` endpoint executes raw tensor inference in `< 5ms` for batch and single-item pricing queries.
-
-### 3. 🔒 Multi-Tenant User Isolation & Security
-* **JWT Cookie Authentication:** Complete user registration, login, and secure session management using `HttpOnly`, `SameSite=Lax` cookies.
-* **Full Data Isolation:** Every merchant's products, sales records, custom margin guardrails, and analysis history are strictly partitioned by `user_id`.
-* **Database Agnostic:** Built with unified dialect conversion supporting **SQLite** for local development and **PostgreSQL** for enterprise scale.
-
-### 4. 💻 Modern Merchant Command Center
-* **Single-Page Application (SPA):** Built with Vanilla JavaScript, Glassmorphism CSS design system, dark/light ambient themes, and zero heavy frontend bundle dependencies.
-* **Product Catalog CRUD:** Create, edit, inspect, and delete store products with real-time margin validations.
-* **Interactive Pricing Simulator:** Real-time sliders allowing merchants to stress-test prices against simulated competitor drops, supply shocks, and demand surges.
-* **Action Queue & Bulk Approvals:** Streamlined inbox showing all AI price recommendations with 1-click **Apply** and **Dismiss** actions.
-* **Financial Analytics:** 30-day projected revenue, profit uplift charts, margin lift metrics, and API latency diagnostics.
+| Component | Technologies | Description |
+| :--- | :--- | :--- |
+| **Frontend UI** | **HTML5, Vanilla CSS3, Vanilla JavaScript (ES6+)** | Lightweight, high-performance Single-Page Application (SPA) with a custom Glassmorphic design system and zero heavy frontend bundle dependencies. |
+| **Backend API** | **Python, FastAPI, Uvicorn, Pydantic v2** | High-concurrency asynchronous REST API framework enforcing strict schema validation and sub-5ms response times. |
+| **Machine Learning** | **LightGBM, Scikit-Learn, Pandas, NumPy, SciPy** | Gradient-boosted decision tree regressor for demand forecasting, paired with microeconomic optimization algorithms. |
+| **Database & Storage** | **SQLite (Development) / PostgreSQL (Production)** | Unified database abstraction layer with automatic parameter dialect conversion and schema initialization. |
+| **Authentication** | **JWT (JSON Web Tokens), Bcrypt, HttpOnly Cookies** | Secure cookie-based session management with encrypted password hashing and cross-origin security headers. |
+| **Cloud Deployment** | **Vercel (Edge Frontend) + Render (Cloud Backend)** | Decoupled cloud architecture pairing global edge CDN static delivery with an always-on Python ML inference service. |
 
 ---
 
-## 🏗️ System Architecture
-
-The application is deployed across a decoupled, high-availability cloud architecture:
-
-```
-┌────────────────────────────────────────────────────────┐
-│               Global Users & Web Clients               │
-└───────────────────────────┬────────────────────────────┘
-                            │ HTTPS
-                            ▼
-┌────────────────────────────────────────────────────────┐
-│             Vercel Edge Global CDN Network             │
-│  - Static Asset Delivery (HTML5 / CSS3 / Vanilla JS)   │
-│  - Zero-Latency Edge API Proxy Rewrites                │
-│  - URL: https://real-time-dynamic-price-optimizatio... │
-└───────────────────────────┬────────────────────────────┘
-                            │ Reverse Proxy /api/*
-                            ▼
-┌────────────────────────────────────────────────────────┐
-│             Render Cloud Web Service (24/7)            │
-│  - FastAPI Async REST API Engine                       │
-│  - In-Memory LightGBM Model Bundle (57 Features)       │
-│  - SQLite / PostgreSQL Transaction Database            │
-│  - URL: https://real-time-dynamic-price-optimiza...    │
-└────────────────────────────────────────────────────────┘
-```
-
----
-
-## 📁 Complete Repository File Structure
+## 📁 Repository Structure
 
 ```text
 Real-Time Dynamic Price Optimization Engine/
-├── .vercelignore               # Vercel deployment exclusions for static edge build
-├── README.md                   # Complete platform documentation & developer guide
-├── Real-Time Dynamic Price...  # Exploratory Data Analysis (EDA) & research notebook (.ipynb)
-├── app.py                      # Application entry point & health-polled browser launcher
-├── generate_dataset.py         # Synthetic multi-category market dataset generator script
-├── render.yaml                 # Infrastructure-as-Code service blueprint for Render
-├── requirements.txt            # Python dependencies (FastAPI, LightGBM, Scikit-Learn, etc.)
-├── start_app.bat               # Single-click Windows launch script with environment checks
-├── vercel.json                 # Vercel root edge routing & proxy rewrite configuration
-│
 ├── backend/                    # Core backend service package
-│   ├── __init__.py             # Backend package initialization
-│   ├── auth.py                 # JWT token generation, cookie handlers, & bcrypt hashing
-│   ├── database.py             # SQLite/PostgreSQL unified abstraction layer & table schemas
+│   ├── auth.py                 # JWT token management, cookie sessions, & password hashing
+│   ├── database.py             # SQLite/PostgreSQL unified database abstraction layer
 │   ├── engine.py               # Microeconomic optimization algorithm & confidence scoring
 │   ├── main.py                 # FastAPI application, route handlers, CORS, & SPA server
-│   └── schemas.py              # Pydantic v2 validation models for requests & responses
+│   └── schemas.py              # Pydantic v2 validation models for requests and responses
 │
-├── frontend/                   # Client user interface
-│   ├── index.html              # Complete Single-Page Application interface
-│   ├── script.js               # Reactive application controller & API fetch orchestration
+├── frontend/                   # Client Single-Page Application
+│   ├── index.html              # Responsive merchant dashboard & command center UI
+│   ├── script.js               # Reactive client controller & API integration
 │   ├── style.css               # Design system, glassmorphism tokens, and responsive layout
-│   └── vercel.json             # Sub-directory edge proxy rewrites for Vercel
+│   └── vercel.json             # Vercel sub-directory edge proxy configuration
 │
-├── src/                        # Machine learning core modules
-│   ├── __init__.py             # ML package initializer
-│   ├── api_fetcher.py          # Market data & trends fetcher integration
-│   ├── batch_generator.py      # Batch inference & evaluation script
-│   ├── config.py               # Category elasticities, target margins, & global constants
-│   ├── feature_engineering.py  # 57-feature transformation & scaling pipeline
+├── src/                        # Machine learning & economic modeling modules
+│   ├── config.py               # Category elasticities, target margins, & system constants
+│   ├── feature_engineering.py  # 57-feature transformation pipeline
 │   ├── optimal_price.py        # Microeconomic mathematical grid search solver
-│   ├── predict.py              # Model loader, singleton bundle cache, & inference engine
-│   ├── product_catalog.py      # Seed product definitions & mock catalog data
-│   ├── report_generator.py     # PDF & markdown analysis export utility
-│   └── validator.py            # Input schema and boundary condition validators
+│   ├── predict.py              # Model bundle loader, singleton cache, & inference engine
+│   └── validator.py            # Business logic and boundary condition validators
 │
-├── data/                       # Local dataset & database directory (auto-created)
-│   └── auraprice.db            # SQLite database file for local persistence
-│
-├── models/                     # Trained ML model artifacts & preprocessors
-│   ├── lightgbm_model.pkl      # Trained LightGBM gradient boosted regressor
+├── models/                     # Trained Machine Learning artifacts
+│   ├── lightgbm_model.pkl      # Trained LightGBM demand regression model
 │   └── preprocessor.pkl        # Feature scalers and categorical encoders
 │
-└── tests/                      # Automated test suite (Pytest)
-    ├── conftest.py             # Pytest fixtures & isolated test client setup
-    ├── test_analysis.py        # Price optimization engine & guardrail tests
-    ├── test_api.py             # REST API endpoint unit & integration tests
-    ├── test_auth.py            # Authentication, registration, & JWT tests
-    ├── test_data.py            # Feature transformation & synthetic data tests
-    ├── test_isolation.py       # Multi-user data security & boundary isolation tests
-    ├── test_model.py           # ML inference correctness & latency tests
-    └── test_products.py        # Product catalog CRUD operation tests
+├── tests/                      # Automated test suite (Pytest)
+│   ├── test_analysis.py        # Pricing optimization and guardrail rule tests
+│   ├── test_api.py             # REST API endpoint unit & integration tests
+│   ├── test_auth.py            # Authentication, registration, and session tests
+│   ├── test_isolation.py       # Multi-tenant data security & user isolation tests
+│   └── test_model.py           # ML inference correctness & latency tests
+│
+├── app.py                      # Application entry point & health-polled launcher
+├── render.yaml                 # Infrastructure-as-Code service blueprint for Render
+├── vercel.json                 # Vercel root edge routing & proxy rewrite configuration
+├── .vercelignore               # Cloud deployment build exclusions
+└── requirements.txt            # Python dependencies (FastAPI, LightGBM, Scikit-Learn, etc.)
 ```
 
 ---
 
-## 🛠️ Technology Stack
+## 🔄 End-to-End User Workflow
 
-| Layer | Technologies |
-| :--- | :--- |
-| **Frontend** | HTML5, Modern CSS3 (Glassmorphism, CSS Custom Properties), Vanilla JavaScript (ES6+), Google Fonts (Plus Jakarta Sans, JetBrains Mono, Material Symbols) |
-| **Backend Framework** | **FastAPI** (Python 3.10+ / 3.11 / 3.14), **Uvicorn** (ASGI Server), **Pydantic v2** (Strict Type Enforcement) |
-| **Machine Learning** | **LightGBM**, **Scikit-Learn**, **Pandas**, **NumPy**, **SciPy** |
-| **Security & Auth** | **Python-Jose** (JWT Signing), **Passlib + Bcrypt** (Password Hashing), **HttpOnly** Cookie Sessions |
-| **Database** | **SQLite** (Local zero-config storage) / **PostgreSQL** (Production enterprise database) |
-| **Testing & QA** | **Pytest**, **HTTPX**, Starlette TestClient |
-| **Cloud Deployment** | **Vercel** (Global Edge CDN UI Hosting) + **Render** (Continuous Backend & ML Model Hosting) |
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Merchant as Store Merchant
+    participant UI as Vercel Edge UI
+    participant API as Render FastAPI Backend
+    participant ML as LightGBM ML Engine
+    participant DB as Isolated Database
 
----
+    Merchant->>UI: Register / Sign In
+    UI->>API: POST /api/auth/login
+    API-->>UI: Sets HttpOnly JWT Session Cookie
+    
+    Merchant->>UI: Add Product (Cost, Current Price, MRP, Stock, Competitor)
+    UI->>API: POST /api/products
+    API->>DB: Persist Product Scoped to User
+    
+    Merchant->>UI: Request Price Optimization Analysis
+    UI->>API: POST /api/products/{id}/analyze
+    API->>ML: Run 57-Feature Transformation & Demand Inference
+    ML-->>API: Optimal Price Grid & Confidence Score
+    API->>DB: Record Pricing Analysis
+    API-->>UI: Return Recommendation, Drivers, & Projected Lift
+    
+    opt What-If Simulation
+        Merchant->>UI: Adjust Simulator Sliders (Stock/Competitor Changes)
+        UI->>API: POST /predict (Stateless <5ms)
+        API-->>UI: Real-Time Projected Demand & Profit Curves
+    end
 
-## 📊 Supported Categories & Seed Elasticities
-
-AuraPrice incorporates tailored baseline price elasticities and minimum target margins for standard retail categories:
-
-| Category | Seeded Elasticity ($\epsilon$) | Typical Margin Target | Marketplace Fee |
-| :--- | :---: | :---: | :---: |
-| **Grocery** | $-0.85$ *(Inelastic)* | $15.0\%$ | $5.0\%$ |
-| **Personal Care** | $-1.10$ *(Moderate)* | $28.0\%$ | $8.0\%$ |
-| **Home & Kitchen** | $-1.35$ *(Moderate)* | $32.0\%$ | $10.0\%$ |
-| **Footwear** | $-1.60$ *(Elastic)* | $38.0\%$ | $12.0\%$ |
-| **Sports & Fitness** | $-1.45$ *(Moderate)* | $35.0\%$ | $10.0\%$ |
-| **Fashion** | $-2.10$ *(Highly Elastic)* | $45.0\%$ | $15.0\%$ |
-| **Mobile Accessories** | $-1.75$ *(Elastic)* | $42.0\%$ | $12.0\%$ |
-| **Electronics** | $-1.25$ *(Moderate)* | $22.0\%$ | $8.0\%$ |
-
----
-
-## 🚀 Local Setup & Quick Start Guide
-
-### Prerequisites
-* **Python 3.10+** (Python 3.11 or 3.12 recommended)
-* **Git**
-
-### Method 1: Single-Click Windows Launch (Easiest)
-
-Simply double-click the included batch launcher:
-```text
-start_app.bat
-```
-This script validates your Python installation, starts the Uvicorn server, waits for the health check to pass, and automatically pops open the app at `http://localhost:8000`.
-
----
-
-### Method 2: Manual Terminal Setup
-
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/neevvaholiyaa-ai/Real-Time-Dynamic-Price-Optimization-Engine.git
-   cd Real-Time-Dynamic-Price-Optimization-Engine
-   ```
-
-2. **Create and activate a virtual environment (optional but recommended):**
-   ```bash
-   python -m venv venv
-   # On Windows:
-   venv\Scripts\activate
-   # On macOS/Linux:
-   source venv/bin/activate
-   ```
-
-3. **Install dependencies:**
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-4. **Launch the application:**
-   ```bash
-   python app.py
-   ```
-
-5. **Open in browser:**
-   * Web App: [http://localhost:8000](http://localhost:8000)
-   * API Documentation: [http://localhost:8000/docs](http://localhost:8000/docs)
-
----
-
-## 📡 REST API Reference
-
-| Method | Endpoint | Description | Auth Required |
-| :--- | :--- | :--- | :---: |
-| `POST` | `/api/auth/register` | Register store account and obtain session cookie | ❌ |
-| `POST` | `/api/auth/login` | Authenticate merchant and issue session cookie | ❌ |
-| `POST` | `/api/auth/logout` | Invalidate active session cookie | ❌ |
-| `GET` | `/api/auth/me` | Fetch active authenticated user profile | ✅ |
-| `GET` | `/api/products` | List all catalog products for current user | ✅ |
-| `POST` | `/api/products` | Create a new product entry in catalog | ✅ |
-| `PUT` | `/api/products/{id}` | Update product parameters and pricing guardrails | ✅ |
-| `DELETE` | `/api/products/{id}` | Remove product and its associated analysis history | ✅ |
-| `POST` | `/api/products/{id}/analyze` | Run full ML + microeconomic price optimization | ✅ |
-| `GET` | `/api/dashboard/overview` | Fetch summary metrics (revenue lift, pending actions) | ✅ |
-| `GET` | `/api/dashboard/queue` | List actionable price recommendation inbox | ✅ |
-| `PUT` | `/api/analyses/{id}/apply` | Apply AI recommended price directly to product | ✅ |
-| `PUT` | `/api/analyses/{id}/dismiss`| Dismiss recommended price adjustment | ✅ |
-| `POST` | `/predict` | High-speed stateless single-product price inference | ❌ |
-| `GET` | `/health` | Server uptime and ML model readiness check | ❌ |
-| `GET` | `/api/categories` | Reference list of categories and baseline elasticities | ❌ |
-
----
-
-## 🧪 Automated Testing Suite
-
-The repository includes a comprehensive test suite covering unit tests, API integration tests, authentication isolation, and ML inference validity:
-
-```bash
-pytest
-```
-
-**Test Results:**
-```text
-============================= test session starts =============================
-tests/test_analysis.py ...                                               [ 13%]
-tests/test_api.py .....                                                  [ 36%]
-tests/test_auth.py .                                                     [ 40%]
-tests/test_data.py ......                                                [ 68%]
-tests/test_isolation.py .                                                [ 72%]
-tests/test_model.py ...                                                  [ 86%]
-tests/test_products.py ...                                               [100%]
-
-======================== 22 passed in 4.90s ========================
+    Merchant->>UI: Apply Recommendation from Action Queue
+    UI->>API: PUT /api/analyses/{id}/apply
+    API->>DB: Update Product Selling Price & Log History
+    API-->>UI: Update Dashboard Metrics & Store Margins
 ```
 
 ---
 
-## 🌐 Production Deployment Guide
+## ☁️ Production Deployment Architecture
 
-### Deploying the Backend on Render
-1. Create a new **Web Service** on [Render](https://render.com).
-2. Connect your GitHub repository.
-3. Configure the service settings:
-   * **Runtime:** `Python 3`
-   * **Build Command:** `pip install -r requirements.txt`
-   * **Start Command:** `uvicorn backend.main:app --host 0.0.0.0 --port $PORT`
-4. Add Environment Variables:
-   * `PYTHON_VERSION`: `3.11.8`
-   * `JWT_SECRET_KEY`: `(Generate a secure secret key)`
-   * `ENV`: `production`
+AuraPrice is deployed using a decoupled, production-grade cloud topology:
+
+* **Frontend Layer (Vercel Edge Network):**
+  The static Single-Page Application assets (`index.html`, `style.css`, `script.js`) are served globally via Vercel's Edge CDN. API requests (`/api/*`, `/health`, `/predict`, `/docs`) are seamlessly reverse-proxied at the edge directly to the backend service.
+* **Backend & ML Layer (Render Cloud Web Service):**
+  The FastAPI ASGI server and in-memory LightGBM machine learning bundle run continuously on Render with automated health monitoring.
+* **Persistence Layer:**
+  Data is securely managed and persisted with multi-user isolation and foreign-key integrity constraints.
 
 ---
 
-### Deploying the Frontend on Vercel
-1. Import the repository into [Vercel](https://vercel.com).
-2. In Project Settings:
-   * **Framework Preset:** `Other`
-   * **Root Directory:** `frontend`
-   * **Build Command:** *(Leave empty)*
-   * **Output Directory:** *(Leave empty)*
-3. Click **Deploy**. Vercel will build the edge static frontend with automatic proxying to your live Render backend in under 10 seconds.
+## 🎨 Visual & Responsive Design
+
+AuraPrice features a custom-crafted, business-focused user interface:
+* **Glassmorphic Aesthetic:** Deep slate backdrops (`#0F172A`), translucent card containers, subtle border glows, and curated color palettes (emerald profit lifts, coral warnings, and indigo brand accents).
+* **Fully Responsive:** Fluid layouts designed for mobile inventory checks, tablet management, laptop screens, and ultra-wide desktop command centers.
+* **Accessible Typography:** Structured hierarchy using *Plus Jakarta Sans* for readable business data and *JetBrains Mono* for currency and numerical metrics.
+
+---
+
+## 🎯 Project Goals
+
+AuraPrice was developed to demonstrate:
+1. **Practical AI Application:** Bridging theoretical machine learning with microeconomic profit equations to solve tangible retail challenges.
+2. **Transparent Decision Support:** Avoiding "black-box" predictions by delivering human-understandable economic drivers and confidence scoring.
+3. **Enterprise Architecture:** Building a clean, secure, multi-tenant system with strict user isolation, zero synthetic business data claims, and sub-5ms API performance.
 
 ---
 
@@ -316,9 +290,6 @@ tests/test_products.py ...                                               [100%]
 
 This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
 
----
-
 <p align="center">
-  Developed by <a href="https://github.com/neevvaholiyaa-ai"><b>neevvaholiyaa-ai</b></a><br>
-  <i>Empowering merchants with intelligent, real-time dynamic pricing.</i>
+  Developed by <a href="https://github.com/neevvaholiyaa-ai"><b>neevvaholiyaa-ai</b></a>
 </p>
