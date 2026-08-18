@@ -20,10 +20,6 @@
     {
       "source": "/openapi.json",
       "destination": "https://real-time-dynamic-price-optimization.onrender.com/openapi.json"
-    },
-    {
-      "source": "/(.*)",
-      "destination": "/frontend/$1"
     }
   ]
 }

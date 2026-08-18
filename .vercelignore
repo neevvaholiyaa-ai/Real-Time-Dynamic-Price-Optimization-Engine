@@ -1,0 +1,11 @@
+# Ignore heavy Python backend files and data on Vercel
+backend/
+src/
+data/
+models/
+requirements.txt
+generate_dataset.py
+*.ipynb
+*.bat
+tests/
+.pytest_cache/
