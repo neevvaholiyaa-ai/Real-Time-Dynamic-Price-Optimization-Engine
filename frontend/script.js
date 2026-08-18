@@ -91,8 +91,9 @@ document.addEventListener("DOMContentLoaded", () => {
             };
             options.body = JSON.stringify(options.body);
         }
+        const finalUrl = (url.startsWith("http://") || url.startsWith("https://")) ? url : `${API_BASE}${url}`;
         try {
-            const resp = await fetch(url, options);
+            const resp = await fetch(finalUrl, options);
             if (resp.status === 401) {
                 // Unauthorized session
                 appState.user = null;
@@ -101,7 +102,7 @@ document.addEventListener("DOMContentLoaded", () => {
             }
             return resp;
         } catch (err) {
-            console.error(`[API Error] ${url}:`, err);
+            console.error(`[API Error] ${finalUrl}:`, err);
             throw err;
         }
     }
