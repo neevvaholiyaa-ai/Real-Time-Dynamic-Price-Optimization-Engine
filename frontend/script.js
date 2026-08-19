@@ -316,6 +316,19 @@ document.addEventListener("DOMContentLoaded", () => {
     if (sidebarCloseBtn) sidebarCloseBtn.addEventListener("click", closeMobileSidebar);
     if (sidebarOverlay) sidebarOverlay.addEventListener("click", closeMobileSidebar);
 
+    // Sidebar & Header Add Product buttons
+    const sidebarAddProductBtn = document.getElementById("sidebarAddProductBtn");
+    const headerAddProductBtn = document.getElementById("headerAddProductBtn");
+
+    function handleAddProductNavigation() {
+        switchView("simulator");
+        resetProductForm();
+        if (window.innerWidth <= 1024) closeMobileSidebar();
+    }
+
+    if (sidebarAddProductBtn) sidebarAddProductBtn.addEventListener("click", handleAddProductNavigation);
+    if (headerAddProductBtn) headerAddProductBtn.addEventListener("click", handleAddProductNavigation);
+
     // =========================================================================
     // 6. VIEW 1: DASHBOARD
     // =========================================================================
@@ -720,24 +733,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const btnNewProduct = document.getElementById("btnNewProduct");
     if (btnNewProduct) {
         btnNewProduct.addEventListener("click", () => {
-            resetProductForm();
-            showToast("Ready to configure a new product.");
-        });
-    }
-
-    const sidebarAddProductBtn = document.getElementById("sidebarAddProductBtn");
-    if (sidebarAddProductBtn) {
-        sidebarAddProductBtn.addEventListener("click", () => {
-            switchView("simulator");
-            resetProductForm();
-            showToast("Ready to configure a new product.");
-        });
-    }
-
-    const headerAddProductBtn = document.getElementById("headerAddProductBtn");
-    if (headerAddProductBtn) {
-        headerAddProductBtn.addEventListener("click", () => {
-            switchView("simulator");
             resetProductForm();
             showToast("Ready to configure a new product.");
         });
@@ -1559,11 +1554,11 @@ document.addEventListener("DOMContentLoaded", () => {
     // =========================================================================
     // 12. CHARTS (High-DPI Data-Driven Canvas Rendering Engine)
     // =========================================================================
-    function setupHiDPICanvas(canvas, desiredHeight) {
-        if (!canvas) return null;
+    function setupHiDPICanvas(canvas, fallbackHeight) {
+        if (!canvas || !canvas.parentElement) return null;
         const rect = canvas.parentElement.getBoundingClientRect();
-        const w = rect.width > 0 ? rect.width : 400;
-        const h = desiredHeight || 240;
+        const w = Math.floor(rect.width > 0 ? rect.width : 400);
+        const h = Math.floor(rect.height > 0 ? rect.height : (fallbackHeight || 220));
         const dpr = window.devicePixelRatio || 1;
 
         canvas.width = Math.floor(w * dpr);
@@ -2004,6 +1999,38 @@ document.addEventListener("DOMContentLoaded", () => {
             showToast("Diagnostics benchmark completed!");
         });
     }
+
+    // Window Resize / Orientation Change Chart Redraw Handler
+    let resizeTimer = null;
+    function handleResize() {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => {
+            if (appState.activeView === "overview") {
+                renderProfitFrontierChart();
+            } else if (appState.activeView === "simulator") {
+                if (appState.latestAnalysis && appState.latestAnalysis.simulation_points) {
+                    renderTopologySimulationChart(
+                        appState.latestAnalysis.simulation_points,
+                        appState.latestAnalysis.recommended_price,
+                        parseFloat(document.getElementById("prodInputCostPrice")?.value),
+                        parseFloat(document.getElementById("prodInputMRP")?.value),
+                        parseFloat(document.getElementById("prodInputCurrentPrice")?.value)
+                    );
+                }
+            } else if (appState.activeView === "analytics") {
+                if (appState.analyticsData) {
+                    renderRevenueTrajectoryChart(
+                        appState.analyticsData.sales_trajectory,
+                        appState.analyticsData.has_actual_sales_data,
+                        appState.analyticsData.projected_total_revenue_30d
+                    );
+                }
+            }
+        }, 150);
+    }
+
+    window.addEventListener("resize", handleResize);
+    window.addEventListener("orientationchange", handleResize);
 
     // =========================================================================
     // 14. BOOTSTRAP APP
