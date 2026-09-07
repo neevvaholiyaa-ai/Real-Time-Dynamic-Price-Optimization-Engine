@@ -172,32 +172,55 @@ document.addEventListener("DOMContentLoaded", () => {
             const password = document.getElementById("loginPassword")?.value;
             if (loginError) loginError.style.display = "none";
 
-            try {
-                const resp = await fetch(`${API_BASE}/api/auth/login`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ email, password }),
-                    credentials: "include"
-                });
+            const submitBtn = loginForm.querySelector("button[type='submit']");
+            const originalBtnText = submitBtn ? submitBtn.textContent : "Sign In";
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.textContent = "Connecting to backend...";
+            }
 
-                if (resp.ok) {
-                    appState.user = await resp.json();
-                    showAppScreen();
-                    showToast(`Welcome back, ${appState.user.display_name}!`);
-                    await initAppData();
-                } else {
-                    const err = await resp.json();
+            async function attemptLogin(retryCount = 0) {
+                try {
+                    const resp = await fetch(`${API_BASE}/api/auth/login`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ email, password }),
+                        credentials: "include"
+                    });
+
+                    if (resp.ok) {
+                        appState.user = await resp.json();
+                        showAppScreen();
+                        showToast(`Welcome back, ${appState.user.display_name}!`);
+                        await initAppData();
+                    } else {
+                        const err = await resp.json().catch(() => ({}));
+                        if (loginError) {
+                            loginError.textContent = err.detail || "Invalid email or password.";
+                            loginError.style.display = "block";
+                        }
+                    }
+                } catch (err) {
+                    if (retryCount < 2) {
+                        if (loginError) {
+                            loginError.textContent = "Waking up cloud backend (Render cold start)... please wait a few seconds.";
+                            loginError.style.display = "block";
+                        }
+                        setTimeout(() => attemptLogin(retryCount + 1), 4000);
+                        return;
+                    }
                     if (loginError) {
-                        loginError.textContent = err.detail || "Invalid email or password.";
+                        loginError.textContent = "Network error. If using Render free tier, the backend may take ~45s to wake up. Please try again in a moment.";
                         loginError.style.display = "block";
                     }
-                }
-            } catch (err) {
-                if (loginError) {
-                    loginError.textContent = "Network error. Please ensure the backend server is running.";
-                    loginError.style.display = "block";
+                } finally {
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = originalBtnText;
+                    }
                 }
             }
+            await attemptLogin();
         });
     }
 
@@ -210,32 +233,55 @@ document.addEventListener("DOMContentLoaded", () => {
             const password = document.getElementById("regPassword")?.value;
             if (regError) regError.style.display = "none";
 
-            try {
-                const resp = await fetch(`${API_BASE}/api/auth/register`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ display_name, email, password }),
-                    credentials: "include"
-                });
+            const submitBtn = registerForm.querySelector("button[type='submit']");
+            const originalBtnText = submitBtn ? submitBtn.textContent : "Create Store Account";
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.textContent = "Creating account...";
+            }
 
-                if (resp.ok) {
-                    appState.user = await resp.json();
-                    showAppScreen();
-                    showToast(`Account created! Welcome, ${appState.user.display_name}!`);
-                    await initAppData();
-                } else {
-                    const err = await resp.json();
+            async function attemptRegister(retryCount = 0) {
+                try {
+                    const resp = await fetch(`${API_BASE}/api/auth/register`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ display_name, email, password }),
+                        credentials: "include"
+                    });
+
+                    if (resp.ok) {
+                        appState.user = await resp.json();
+                        showAppScreen();
+                        showToast(`Account created! Welcome, ${appState.user.display_name}!`);
+                        await initAppData();
+                    } else {
+                        const err = await resp.json().catch(() => ({}));
+                        if (regError) {
+                            regError.textContent = err.detail || "Registration failed. Email may already be in use.";
+                            regError.style.display = "block";
+                        }
+                    }
+                } catch (err) {
+                    if (retryCount < 2) {
+                        if (regError) {
+                            regError.textContent = "Waking up cloud backend (Render cold start)... retrying in a moment.";
+                            regError.style.display = "block";
+                        }
+                        setTimeout(() => attemptRegister(retryCount + 1), 4000);
+                        return;
+                    }
                     if (regError) {
-                        regError.textContent = err.detail || "Registration failed. Email may already be in use.";
+                        regError.textContent = "Network error. The backend is waking up on Render. Please try again in 30 seconds.";
                         regError.style.display = "block";
                     }
-                }
-            } catch (err) {
-                if (regError) {
-                    regError.textContent = "Network error. Please try again.";
-                    regError.style.display = "block";
+                } finally {
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = originalBtnText;
+                    }
                 }
             }
+            await attemptRegister();
         });
     }
 

@@ -79,10 +79,22 @@ app = FastAPI(
 # CORS Configuration
 allowed_origins_env = os.environ.get("ALLOWED_ORIGINS", "")
 allowed_origins = [orig.strip() for orig in allowed_origins_env.split(",") if orig.strip()]
+if not allowed_origins:
+    allowed_origins = [
+        "https://real-time-dynamic-price-optimizatio.vercel.app",
+        "https://real-time-dynamic-price-optimization.onrender.com",
+        "http://localhost:8000",
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://localhost:5500",
+        "http://127.0.0.1:8000",
+        "http://127.0.0.1:5500",
+    ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins if allowed_origins else ["*"],
+    allow_origins=allowed_origins,
+    allow_origin_regex=r"https?://.*",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
